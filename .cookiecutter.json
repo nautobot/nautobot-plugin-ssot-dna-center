@@ -1,0 +1,27 @@
+{
+  "cookiecutter": {
+    "codeowner_github_usernames": "@jdrew82",
+    "full_name": "Justin Drew",
+    "email": "justin.drew@networktocode.com",
+    "github_org": "nautobot",
+    "system_of_record": "DNA Center",
+    "system_of_record_camel": "DnaCenter",
+    "system_of_record_slug": "dna_center",
+    "plugin_name": "nautobot_ssot_dna_center",
+    "verbose_name": "Nautobot SSoT for Cisco DNA Center",
+    "plugin_slug": "nautobot-ssot-dna-center",
+    "project_slug": "nautobot-plugin-ssot-dna-center",
+    "repo_url": "https://github.com/nautobot/nautobot-plugin-ssot-dna-center",
+    "base_url": "ssot-dna-center",
+    "min_nautobot_version": "1.4.0",
+    "max_nautobot_version": "1.9999",
+    "nautobot_version": "latest",
+    "camel_name": "NautobotSsotDnaCenter",
+    "project_short_description": "Nautobot SSoT for Cisco DNA Center",
+    "version": "0.1.0",
+    "model_class_name": "DNACInstance",
+    "open_source_license": "Apache-2.0",
+    "_template": "gh:networktocode-llc/cookiecutter-ntc",
+    "_output_dir": "/Users/justin.drew/Projects/Customers/corn"
+  }
+}
