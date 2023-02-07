@@ -83,6 +83,24 @@
 						{{ object.description|placeholder }}
 					</td>
 				</tr>
+				<tr>
+					<td>Host URL</td>
+					<td>
+						{{ object.host_url|placeholder }}
+					</td>
+				</tr>
+				<tr>
+					<td>Port</td>
+					<td>
+						{{ object.port|placeholder }}
+					</td>
+				</tr>
+				<tr>
+					<td>Secrets Group</td>
+					<td>
+						{{ object.auth_group|placeholder }}
+					</td>
+				</tr>
 			</table>
 		</div>
 		{% include 'inc/custom_fields_panel.html' %}
