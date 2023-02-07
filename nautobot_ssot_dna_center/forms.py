@@ -67,3 +67,13 @@ class DNACInstanceFilterForm(BootstrapMixin, forms.ModelForm):
             "port",
             "auth_group",
         ]
+
+
+class DNACInstanceCSVImportForm(BootstrapMixin, forms.ModelForm):
+    """Form for entering CSV to bulk-import DNAC instances."""
+
+    class Meta:
+        """Class to define what is used for bulk import of instances form using CSV."""
+
+        model = models.DNACInstance
+        fields = models.DNACInstance.csv_headers
