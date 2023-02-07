@@ -55,4 +55,5 @@ class DNACInstance(BaseModel, ChangeLoggedModel):
         return self.name
 
     def to_csv(self):
+        """Export model fields to CSV file."""
         return (self.name, self.slug, self.description, self.host_url, self.port)
