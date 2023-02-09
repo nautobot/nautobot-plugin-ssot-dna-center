@@ -1,12 +1,11 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
 
-from nautobot.dcim.models import Device as NewDevice
-from nautobot.dcim.models import Site, DeviceRole
+from nautobot.dcim.models import Device, DeviceRole, Site
 from nautobot.extras.models import Status
-from nautobot_ssot_dna_center.diffsync.models.base import Device
+from nautobot_ssot_dna_center.diffsync.models import base
 
 
-class NautobotSite(Site):
+class NautobotSite(base.Site):
     """Nautobot implementation of Site DiffSync model."""
 
     @classmethod
@@ -23,13 +22,13 @@ class NautobotSite(Site):
         return self
 
 
-class NautobotDevice(Device):
+class NautobotDevice(base.Device):
     """Nautobot implementation of DNA Center Device model."""
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
-        new_device = NewDevice(
+        new_device = Device(
             name=ids["name"],
             status=Status.objects.get_or_create(name=attrs["status"]),
             role=DeviceRole.objects.get_or_create(name=attrs["role"]),
