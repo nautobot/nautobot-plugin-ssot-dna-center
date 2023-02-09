@@ -7,7 +7,24 @@ from nautobot.extras.models import Status
 from nautobot_ssot_dna_center.diffsync.models.base import Device
 
 
-class NautobotDevice(DiffSyncModel):
+class NautobotSite(Site):
+    """Nautobot implementation of Site DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Site in Nautobot from Site object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Site in Nautobot from Site object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Site in Nautobot from Site object."""
+        return self
+
+
+class NautobotDevice(Device):
     """Nautobot implementation of DNA Center Device model."""
 
     @classmethod
