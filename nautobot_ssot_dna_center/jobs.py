@@ -1,9 +1,12 @@
 """Jobs for DNA Center SSoT integration."""
 
 from diffsync import DiffSyncFlags
-from nautobot.extras.jobs import BooleanVar, Job
+from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
+from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar
 from nautobot_ssot.jobs.base import DataSource
 from nautobot_ssot_dna_center.diffsync.adapters import dna_center, nautobot
+from nautobot_ssot_dna_center.models import DNACInstance
+from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
 
 name = "DNA Center SSoT"  # pylint: disable=invalid-name
@@ -12,6 +15,11 @@ name = "DNA Center SSoT"  # pylint: disable=invalid-name
 class DnaCenterDataSource(DataSource, Job):
     """DNA Center SSoT Data Source."""
 
+    instances = MultiObjectVar(
+        model=DNACInstance,
+        queryset=DNACInstance.objects.all(),
+        display_field="display_name",
+    )
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     def __init__(self):
@@ -39,8 +47,26 @@ class DnaCenterDataSource(DataSource, Job):
 
     def load_source_adapter(self):
         """Load data from DNA Center into DiffSync models."""
-        self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync)
-        self.source_adapter.load()
+        for instance in self.kwargs["instances"]:
+            self.log_info(message=f"Loading data from {instance.name}")
+            _sg = instance.auth_group
+            username = _sg.get_secret_value(
+                access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+                secret_type=SecretsGroupSecretTypeChoices.TYPE_USERNAME,
+            )
+            password = _sg.get_secret_value(
+                access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+                secret_type=SecretsGroupSecretTypeChoices.TYPE_PASSWORD,
+            )
+            client = DnaCenterClient(
+                url=instance.host_url,
+                username=username,
+                password=password,
+                port=instance.port,
+                verify=instance.verify,
+            )
+            self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client)
+            self.source_adapter.load()
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""
