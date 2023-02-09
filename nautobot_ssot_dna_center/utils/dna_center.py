@@ -10,7 +10,9 @@ LOGGER = logging.getLogger(__name__)
 class DnaCenterClient:
     """Client for handling all interactions with DNA Center."""
 
-    def __init__(self, url: str, username: str, password: str, port: int = 443, verify: bool = True):
+    def __init__(
+        self, url: str, username: str, password: str, port: int = 443, verify: bool = True
+    ):  # pylint: disable=too-many-arguments
         """Initialize instance of client."""
         self.url = url
         self.port = port
@@ -18,9 +20,9 @@ class DnaCenterClient:
         self.username = username
         self.password = password
         self.verify = verify
-        self.conn = self.connect
+        self.conn = self.connect()
 
-    def connect(self):
+    def connect(self):  # pylint: disable=inconsistent-return-statements
         """Connect to Cisco DNA Center."""
         try:
             return api.DNACenterAPI(
@@ -31,10 +33,12 @@ class DnaCenterClient:
 
     def get_sites(self):
         """Retrieve all Site data from DNA Center."""
+        sites = {}
         try:
-            return self.conn.sites.get_site()["response"]
+            sites = self.conn.sites.get_site()["response"]
         except ApiError as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
+        return sites
 
     @staticmethod
     def find_address_and_type(info: dict):
@@ -56,7 +60,9 @@ class DnaCenterClient:
 
     def get_devices(self):
         """Retrieve all Device data from DNA Center."""
+        dev_list = {}
         try:
-            return self.conn.devices.get_device_list()["response"]
+            dev_list = self.conn.devices.get_device_list()["response"]
         except ApiError as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
+        return dev_list

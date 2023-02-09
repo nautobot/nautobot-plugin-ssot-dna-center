@@ -35,6 +35,7 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
         "port",
         "slug",
         "url",
+        "verify",
     ]
 
     @classmethod

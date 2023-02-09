@@ -21,6 +21,10 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.dna_center_client = MagicMock()
         self.dna_center_client.get_sites.return_value = SITE_FIXTURE
         self.dna_center_client.get_devices.return_value = DEVICE_FIXTURE
+        self.dna_center_client.find_address_and_type.return_value = (
+            "123 Main St, New York, New York 12345",
+            "Building",
+        )
 
         self.job = DnaCenterDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -30,8 +34,11 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
     def test_data_loading(self):
         """Test Nautobot SSoT for Cisco DNA Center load() function."""
-        # self.dna_center.load()
-        # self.assertEqual(
-        #     {site["name"] for site in SITE_FIXTURE},
-        #     {site.get_unique_id() for site in self.dna_center.get_all("site")},
-        # )
+        self.dna_center.load()
+        self.assertEqual(
+            {
+                f"{site['name']}__{self.dna_center.dnac_site_map[site['parentId']] if site.get('parentId') else ''}"
+                for site in SITE_FIXTURE
+            },
+            {site.get_unique_id() for site in self.dna_center.get_all("site")},
+        )

@@ -13,7 +13,7 @@ class DnaCenterAdapter(DiffSync):
 
     top_level = ["site", "device"]
 
-    def __init__(self, *args, job=None, sync=None, client: DnaCenterClient = None, **kwargs):
+    def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, **kwargs):
         """Initialize DNA Center.
 
         Args:
@@ -31,14 +31,14 @@ class DnaCenterAdapter(DiffSync):
         """Load Site data from DNA Center into DiffSync models."""
         sites = self.conn.get_sites()
         if sites:
-            self.dnac_site_map = {site.id: site.name for site in sites}
+            self.dnac_site_map = {site["id"]: site["name"] for site in sites}
             for site in sites:
                 address, site_type = self.conn.find_address_and_type(info=site["additionalInfo"])
                 new_site = self.site(
                     name=site["name"],
                     address=address,
                     site_type=site_type,
-                    parent=self.dnac_site_map[site["parentId"]] if self.dnac_site_map.get(site["parentId"]) else "",
+                    parent=self.dnac_site_map[site["parentId"]] if site.get("parentId") else "",
                 )
                 self.add(new_site)
 
