@@ -24,6 +24,7 @@ class DNACInstanceForm(BootstrapMixin, forms.ModelForm):
             "description",
             "host_url",
             "port",
+            "verify",
             "auth_group",
         ]
 
@@ -53,6 +54,7 @@ class DNACInstanceFilterForm(BootstrapMixin, forms.ModelForm):
     name = forms.CharField(required=False, label="Name")
     slug = forms.CharField(required=False, label="Slug")
     port = forms.IntegerField(required=False, label="Port")
+    verify = forms.BooleanField(required=True, label="Verify SSL")
     auth_group = forms.MultipleChoiceField(required=False, label="Secrets Group")
 
     class Meta:
@@ -65,6 +67,7 @@ class DNACInstanceFilterForm(BootstrapMixin, forms.ModelForm):
             "name",
             "slug",
             "port",
+            "verify",
             "auth_group",
         ]
 
