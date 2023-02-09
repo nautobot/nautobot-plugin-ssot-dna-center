@@ -8,16 +8,13 @@ class Site(DiffSyncModel):
     """DiffSync model for DNA Center sites."""
 
     _modelname = "site"
-    _identifiers = ("name",)
-    _attributes = (
-        "address",
-        "parent",
-    )
+    _identifiers = ("name", "parent")
+    _attributes = ("address",)
     _children = {}
 
     name: str
     address: Optional[str]
-    site_type: str
+    site_type: Optional[str]
     parent: str
 
 
