@@ -1,5 +1,4 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
-from diffsync import DiffSyncModel
 
 from nautobot.dcim.models import Device as NewDevice
 from nautobot.dcim.models import Site, DeviceRole
