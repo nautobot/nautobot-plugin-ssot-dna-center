@@ -1,6 +1,5 @@
 """Test DNA Center adapter."""
 
-import json
 import uuid
 from unittest.mock import MagicMock
 
@@ -8,16 +7,8 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
+from nautobot_ssot_dna_center.tests.fixtures import SITE_FIXTURE, DEVICE_FIXTURE
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
-
-
-def load_json(path):
-    """Load a json file."""
-    with open(path, encoding="utf-8") as file:
-        return json.loads(file.read())
-
-
-SITE_FIXTURE = []
 
 
 class TestDnaCenterAdapterTestCase(TransactionTestCase):
@@ -29,6 +20,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         """Initialize test case."""
         self.dna_center_client = MagicMock()
         self.dna_center_client.get_sites.return_value = SITE_FIXTURE
+        self.dna_center_client.get_devices.return_value = DEVICE_FIXTURE
 
         self.job = DnaCenterDataSource()
         self.job.job_result = JobResult.objects.create(
