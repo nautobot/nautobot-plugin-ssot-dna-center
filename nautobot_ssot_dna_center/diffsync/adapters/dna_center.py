@@ -39,6 +39,7 @@ class DnaCenterAdapter(DiffSync):
                     address=address,
                     site_type=site_type,
                     parent=self.dnac_site_map[site["parentId"]] if site.get("parentId") else "",
+                    uuid=None,
                 )
                 self.add(new_site)
 

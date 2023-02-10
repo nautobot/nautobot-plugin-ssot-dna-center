@@ -32,6 +32,7 @@ class NautobotAdapter(DiffSync):
                 address=site.physical_address,
                 site_type=None,
                 parent=site.region.name,
+                uuid=site.id,
             )
             self.add(new_site)
 
