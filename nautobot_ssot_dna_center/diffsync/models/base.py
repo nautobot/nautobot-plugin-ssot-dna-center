@@ -17,6 +17,8 @@ class Site(DiffSyncModel):
     site_type: Optional[str]
     parent: str
 
+    uuid: Optional[UUID]
+
 
 class Device(DiffSyncModel):
     """DiffSync model for DNA Center devices."""
