@@ -13,6 +13,7 @@ class DNACInstanceTest(TestCase):
                 "name": "Development",
                 "slug": "development",
                 "description": "Development Testing",
+                "port": 443,
             }
         )
         self.assertTrue(form.is_valid())
@@ -23,6 +24,7 @@ class DNACInstanceTest(TestCase):
             data={
                 "name": "Development",
                 "slug": "development",
+                "port": 443,
             }
         )
         self.assertTrue(form.is_valid())
@@ -37,3 +39,8 @@ class DNACInstanceTest(TestCase):
         form = forms.DNACInstanceForm(data={"name": "Development"})
         self.assertFalse(form.is_valid())
         self.assertIn("This field is required.", form.errors["slug"])
+
+    def test_validate_port_is_required(self):
+        form = forms.DNACInstanceForm(data={"name": "Development", "slug": "development"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("This field is required.", form.errors["port"])

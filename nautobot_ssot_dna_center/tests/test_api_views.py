@@ -14,14 +14,29 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
         {
             "name": "Test Model 1",
             "slug": "test-model-1",
+            "port": 443,
         },
         {
             "name": "Test Model 2",
             "slug": "test-model-2",
+            "port": 443,
         },
     ]
     bulk_update_data = {"description": "Test Bulk Update"}
-    brief_fields = ["created", "description", "display", "id", "last_updated", "name", "slug", "url"]
+    brief_fields = [
+        "auth_group",
+        "created",
+        "description",
+        "display",
+        "host_url",
+        "id",
+        "last_updated",
+        "name",
+        "port",
+        "slug",
+        "url",
+        "verify",
+    ]
 
     @classmethod
     def setUpTestData(cls):

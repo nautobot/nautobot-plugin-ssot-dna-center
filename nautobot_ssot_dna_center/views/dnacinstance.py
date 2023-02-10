@@ -48,6 +48,14 @@ class DNACInstanceEditView(generic.ObjectEditView):
     model_form = forms.DNACInstanceForm
 
 
+class DNACInstanceBulkImportView(generic.BulkImportView):
+    """View for importing one or more DNACInstance records."""
+
+    model = models.DNACInstance
+    queryset = models.DNACInstance.objects.all()
+    model_form = forms.DNACInstanceCSVImportForm
+
+
 class DNACInstanceBulkDeleteView(generic.BulkDeleteView):
     """View for deleting one or more DNACInstance records."""
 
