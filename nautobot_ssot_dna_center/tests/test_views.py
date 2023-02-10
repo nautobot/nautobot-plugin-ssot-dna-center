@@ -15,6 +15,7 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         "name": "Test 1",
         "slug": "test-1",
         "description": "Initial model",
+        "port": 443,
     }
 
     @classmethod
@@ -28,4 +29,10 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         pass
 
     def test_bulk_import_objects_without_permission(self):
+        pass
+
+    def test_bulk_import_objects_with_permission_csv_file(self):
+        pass
+
+    def test_has_advanced_tab(self):
         pass

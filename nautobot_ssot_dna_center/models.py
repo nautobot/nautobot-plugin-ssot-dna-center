@@ -28,6 +28,7 @@ class DNACInstance(BaseModel, ChangeLoggedModel):
         max_length=255, blank=True, help_text="URL to DNAC instance including protocol.", verbose_name="Host URL"
     )
     port = models.IntegerField(default=443)
+    verify = models.BooleanField(verbose_name="Verify SSL", default=True)
     auth_group = models.ForeignKey(
         to="extras.SecretsGroup",
         on_delete=models.SET_NULL,
@@ -37,7 +38,7 @@ class DNACInstance(BaseModel, ChangeLoggedModel):
         verbose_name="Secrets Group",
     )
 
-    csv_headers = ["name", "slug", "description", "host_url", "port"]
+    csv_headers = ["name", "slug", "description", "host_url", "port", "verify"]
 
     class Meta:
         """Meta class."""
@@ -55,4 +56,5 @@ class DNACInstance(BaseModel, ChangeLoggedModel):
         return self.name
 
     def to_csv(self):
+        """Export model fields to CSV file."""
         return (self.name, self.slug, self.description, self.host_url, self.port)

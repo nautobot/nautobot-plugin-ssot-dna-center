@@ -4,6 +4,22 @@ from uuid import UUID
 from diffsync import DiffSyncModel
 
 
+class Site(DiffSyncModel):
+    """DiffSync model for DNA Center sites."""
+
+    _modelname = "site"
+    _identifiers = ("name", "parent")
+    _attributes = ("address",)
+    _children = {}
+
+    name: str
+    address: Optional[str]
+    site_type: Optional[str]
+    parent: str
+
+    uuid: Optional[UUID]
+
+
 class Device(DiffSyncModel):
     """DiffSync model for DNA Center devices."""
 
@@ -14,7 +30,6 @@ class Device(DiffSyncModel):
         "role",
         "model",
         "site",
-        "ip_address",
     )
     _children = {}
 
@@ -23,6 +38,5 @@ class Device(DiffSyncModel):
     role: Optional[str]
     model: Optional[str]
     site: Optional[str]
-    ip_address = Optional[str]
 
     uuid = Optional[UUID]
