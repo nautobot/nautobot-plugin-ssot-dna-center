@@ -2,16 +2,18 @@
 
 from diffsync import DiffSync
 from nautobot.dcim.models import Site as OrmSite
-from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotDevice, NautobotSite
+from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding, NautobotFloor, NautobotDevice
 
 
 class NautobotAdapter(DiffSync):
     """DiffSync adapter for Nautobot."""
 
-    site = NautobotSite
+    area = NautobotArea
+    building = NautobotBuilding
+    floor = NautobotFloor
     device = NautobotDevice
 
-    top_level = ["site", "device"]
+    top_level = ["area", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.

@@ -1,14 +1,16 @@
 """Nautobot SSoT for Cisco DNA Center Adapter for DNA Center SSoT plugin."""
 
 from diffsync import DiffSync
-from nautobot_ssot_dna_center.diffsync.models.dna_center import DnaCenterSite, DnaCenterDevice
+from nautobot_ssot_dna_center.diffsync.models.dna_center import DnaCenterArea, DnaCenterBuilding, DnaCenterFloor, DnaCenterDevice
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
 
 class DnaCenterAdapter(DiffSync):
     """DiffSync adapter for DNA Center."""
 
-    site = DnaCenterSite
+    area = DnaCenterArea
+    building = DnaCenterBuilding
+    floor = DnaCenterFloor
     device = DnaCenterDevice
 
     top_level = ["site", "device"]

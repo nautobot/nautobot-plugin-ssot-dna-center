@@ -6,15 +6,33 @@ from nautobot.extras.models import Status
 from nautobot_ssot_dna_center.diffsync.models import base
 
 
-class NautobotSite(base.Site):
-    """Nautobot implementation of Site DiffSync model."""
+class NautobotArea(base.Area):
+    """Nautobot implementation of Area DiffSync model."""
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
-        """Create Site in Nautobot from Site object."""
+        """Create Region in Nautobot from Area object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Region in Nautobot from Area object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Region in Nautobot from Area object."""
+        return self
+
+
+class NautobotBuilding(base.Building):
+    """Nautobot implementation of Building DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Site in Nautobot from Building object."""
         new_site = Site(
             name=ids["name"],
             physical_address=attrs["address"] if attrs.get("address") else "",
+            status=Status.objects.get(name="Active"),
         )
         try:
             if attrs.get("parent"):
@@ -25,7 +43,7 @@ class NautobotSite(base.Site):
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
-        """Update Site in Nautobot from Site object."""
+        """Update Site in Nautobot from Building object."""
         site = Site.objects.get(id=self.uuid)
         if "address" in attrs:
             site.physical_address = attrs["address"]
@@ -33,10 +51,27 @@ class NautobotSite(base.Site):
         return super().update(attrs)
 
     def delete(self):
-        """Delete Site in Nautobot from Site object."""
+        """Delete Site in Nautobot from Building object."""
         site = Site.objects.get(id=self.uuid)
         super().delete()
         site.delete()
+        return self
+
+
+class NautobotFloor(base.Floor):
+    """Nautobot implementation of Floor DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create LocationType: Floor in Nautobot from Floor object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update LocationType: Floor in Nautobot from Floor object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete LocationType: Floor in Nautobot from Floor object."""
         return self
 
 
