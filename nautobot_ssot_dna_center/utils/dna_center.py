@@ -58,6 +58,24 @@ class DnaCenterClient:
                 site_type = element["attributes"]["type"]
         return (address, site_type)
 
+    @staticmethod
+    def find_latitude_and_longitude(info: dict):
+        """Find Site latitude and longitude from additionalInfo dict.
+
+        Args:
+            info (dict): Site additionalInfo property from DNA Center.
+
+        Returns:
+            tuple: Tuple of Site latitude and longitude.
+        """
+        latitude = ""
+        longitude = ""
+        for element in info:
+            if element["nameSpace"] == "Location":
+                latitude = element["attributes"]["latitude"]
+                longitude = element["attributes"]["longitude"]
+        return (latitude, longitude)
+
     def get_devices(self):
         """Retrieve all Device data from DNA Center."""
         dev_list = {}
