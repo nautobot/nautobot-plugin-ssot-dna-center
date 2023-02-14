@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
-from nautobot_ssot_dna_center.tests.fixtures import SITE_FIXTURE, DEVICE_FIXTURE
+from nautobot_ssot_dna_center.tests.fixtures import LOCATION_FIXTURE, DEVICE_FIXTURE
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
 
 
@@ -19,7 +19,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def setUp(self):
         """Initialize test case."""
         self.dna_center_client = MagicMock()
-        self.dna_center_client.get_sites.return_value = SITE_FIXTURE
+        self.dna_center_client.get_locations.return_value = LOCATION_FIXTURE
         self.dna_center_client.get_devices.return_value = DEVICE_FIXTURE
         self.dna_center_client.find_address_and_type.return_value = (
             "123 Main St, New York, New York 12345",
@@ -38,7 +38,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {
                 f"{site['name']}__{self.dna_center.dnac_site_map[site['parentId']] if site.get('parentId') else ''}"
-                for site in SITE_FIXTURE
+                for site in LOCATION_FIXTURE
             },
             {site.get_unique_id() for site in self.dna_center.get_all("site")},
         )

@@ -9,7 +9,7 @@ def load_json(path):
         return json.loads(file.read())
 
 
-SITE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_sites.json")
+LOCATION_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_locations.json")
 DEVICE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_devices.json")
 
 

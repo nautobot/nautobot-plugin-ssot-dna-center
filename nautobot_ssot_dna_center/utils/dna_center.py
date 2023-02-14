@@ -31,14 +31,14 @@ class DnaCenterClient:
         except ApiError as err:
             LOGGER.error("Unable to connect to DNA Center: %s", err)
 
-    def get_sites(self):
-        """Retrieve all Site data from DNA Center."""
-        sites = {}
+    def get_locations(self):
+        """Retrieve all location data from DNA Center."""
+        locations = {}
         try:
-            sites = self.conn.sites.get_site()["response"]
+            locations = self.conn.sites.get_site()["response"]
         except ApiError as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
-        return sites
+        return locations
 
     @staticmethod
     def find_address_and_type(info: dict):
