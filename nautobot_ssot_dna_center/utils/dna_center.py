@@ -84,3 +84,19 @@ class DnaCenterClient:
         except ApiError as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
+
+    def get_device_detail(self, dev_id: str):
+        """Retrieve all Device data from DNA Center.
+
+        Args:
+            dev_id (str): ID of device in DNAC to query for details.
+
+        Returns:
+            dict: Details about specified dev_id.
+        """
+        dev_detail = {}
+        try:
+            dev_detail = self.conn.devices.get_device_detail(search_by=dev_id, identifier="uuid")["response"]
+        except ApiError as err:
+            LOGGER.error("Unable to get device detail information from DNA Center. %s", err)
+        return dev_detail
