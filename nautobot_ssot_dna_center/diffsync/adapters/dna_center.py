@@ -27,23 +27,65 @@ class DnaCenterAdapter(DiffSync):
         self.job = job
         self.sync = sync
         self.conn = client
-        self.dnac_site_map = {}
+        self.dnac_location_map = {}
 
-    def load_sites(self):
-        """Load Site data from DNA Center into DiffSync models."""
-        sites = self.conn.get_sites()
-        if sites:
-            self.dnac_site_map = {site["id"]: site["name"] for site in sites}
-            for site in sites:
-                address, site_type = self.conn.find_address_and_type(info=site["additionalInfo"])
-                new_site = self.site(
-                    name=site["name"],
-                    address=address,
-                    site_type=site_type,
-                    parent=self.dnac_site_map[site["parentId"]] if site.get("parentId") else "",
-                    uuid=None,
-                )
-                self.add(new_site)
+    def load_locations(self):
+        """Load location data from DNA Center into DiffSync models."""
+        locations = self.conn.get_locations()
+        if locations:
+            self.dnac_location_map = {loc["id"]: {"name": loc["name"], "parent": None, "loc_type": "area"} for loc in locations}
+            for location in locations:
+                address = ""
+                location_type = "area"
+                if location.get("parentId"):
+                    self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]][
+                        "name"
+                    ]
+                if location.get("additionalInfo"):
+                    address, location_type = self.conn.find_address_and_type(info=location["additionalInfo"])
+                    self.dnac_location_map[location["id"]]["loc_type"] = location_type
+                if location_type == "area":
+                    new_area = self.area(
+                        name=location["name"],
+                        parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else "",
+                        uuid=None,
+                    )
+                    self.add(new_area)
+                if location_type == "building":
+                    latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
+                    _area = self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
+                    new_building = self.building(
+                        name=location["name"],
+                        address=address,
+                        area=_area,
+                        latitude=latitude,
+                        longitude=longitude,
+                        uuid=None,
+                    )
+                    self.add(new_building)
+                    try:
+                        parent = self.get(self.area, _area)
+                        parent.add_child(new_building)
+                    except ObjectNotFound as err:
+                        self.job.log_warning(
+                            message=f"Unable to find area {parent} for building {location['name']}. {err}"
+                        )
+                if location_type == "floor":
+                    _building = self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
+                    _area = self.dnac_location_map[location["parentId"]]["parent"]
+                    new_floor = self.floor(
+                        name=location["name"],
+                        building=_building,
+                        uuid=None,
+                    )
+                    self.add(new_floor)
+                    try:
+                        parent = self.get(self.building, {"name": _building, "area": _area})
+                        parent.add_child(new_floor)
+                    except ObjectNotFound as err:
+                        self.job.log_warning(
+                            message=f"Unable to find building {_building} in area {_area} for floor {location['name']}. {err}"
+                        )
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
