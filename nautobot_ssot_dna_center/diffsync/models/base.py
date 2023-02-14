@@ -8,8 +8,8 @@ class Area(DiffSyncModel):
     """DiffSync model for DNA Center areas."""
 
     _modelname = "area"
-    _identifiers = ("name", "parent")
-    _attributes = ()
+    _identifiers = ("name",)
+    _attributes = ("parent",)
     _children = {"building": "buildings"}
 
     name: str
