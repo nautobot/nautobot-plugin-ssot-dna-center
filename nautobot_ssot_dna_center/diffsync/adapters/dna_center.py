@@ -39,59 +39,101 @@ class DnaCenterAdapter(DiffSync):
         """Load location data from DNA Center into DiffSync models."""
         locations = self.conn.get_locations()
         if locations:
-            self.dnac_location_map = {loc["id"]: {"name": loc["name"], "parent": None, "loc_type": "area"} for loc in locations}
-            for location in locations:
+            # to ensure we process locations in the appropriate order we need to split them into their own list of locations
+            self.dnac_location_map = self.build_dnac_location_map(locations)
+            areas, buildings, floors = self.parse_and_sort_locations(locations)
+            for location in areas:
                 address = ""
-                location_type = "area"
                 if location.get("parentId"):
                     self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]][
                         "name"
                     ]
                 if location.get("additionalInfo"):
-                    address, location_type = self.conn.find_address_and_type(info=location["additionalInfo"])
-                    self.dnac_location_map[location["id"]]["loc_type"] = location_type
-                if location_type == "area":
-                    new_area = self.area(
-                        name=location["name"],
-                        parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else "",
-                        uuid=None,
+                    address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
+                new_area = self.area(
+                    name=location["name"],
+                    parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else "",
+                    uuid=None,
+                )
+                self.add(new_area)
+            for location in buildings:
+                address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
+                latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
+                _area = (
+                    self.dnac_location_map[location["parentId"]]
+                    if location.get("parentId")
+                    else {"name": "Global", "parent": None}
+                )
+                new_building = self.building(
+                    name=location["name"],
+                    address=address,
+                    area=_area["name"],
+                    latitude=latitude,
+                    longitude=longitude,
+                    uuid=None,
+                )
+                self.add(new_building)
+                try:
+                    parent = self.get(self.area, {"name": _area["name"], "parent": _area["parent"]})
+                    parent.add_child(new_building)
+                except ObjectNotFound as err:
+                    self.job.log_warning(
+                        message=f"Unable to find area {_area['name']} for building {_area['parent']}. {err}"
                     )
-                    self.add(new_area)
-                if location_type == "building":
-                    latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
-                    _area = self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
-                    new_building = self.building(
-                        name=location["name"],
-                        address=address,
-                        area=_area,
-                        latitude=latitude,
-                        longitude=longitude,
-                        uuid=None,
+            for location in floors:
+                _building = self.dnac_location_map[location["parentId"]] if location.get("parentId") else {}
+                new_floor = self.floor(
+                    name=location["name"],
+                    building=_building["name"] if _building.get("name") else "",
+                    uuid=None,
+                )
+                self.add(new_floor)
+                try:
+                    parent = self.get(self.building, {"name": _building["name"], "area": _building["parent"]})
+                    parent.add_child(new_floor)
+                except ObjectNotFound as err:
+                    self.job.log_warning(
+                        message=f"Unable to find building {_building['name']} in area {_building['parent']} for floor {location['name']}. {err}"
                     )
-                    self.add(new_building)
-                    try:
-                        parent = self.get(self.area, _area)
-                        parent.add_child(new_building)
-                    except ObjectNotFound as err:
-                        self.job.log_warning(
-                            message=f"Unable to find area {parent} for building {location['name']}. {err}"
-                        )
-                if location_type == "floor":
-                    _building = self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
-                    _area = self.dnac_location_map[location["parentId"]]["parent"]
-                    new_floor = self.floor(
-                        name=location["name"],
-                        building=_building,
-                        uuid=None,
-                    )
-                    self.add(new_floor)
-                    try:
-                        parent = self.get(self.building, {"name": _building, "area": _area})
-                        parent.add_child(new_floor)
-                    except ObjectNotFound as err:
-                        self.job.log_warning(
-                            message=f"Unable to find building {_building} in area {_area} for floor {location['name']}. {err}"
-                        )
+
+    def parse_and_sort_locations(self, locations: list):
+        """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
+
+        Args:
+            locations (list): List of Locations (Sites) from DNAC to be separated.
+
+        Returns:
+            tuple (List[dict], List[dict], List[dict]): Tuple containing lists of areas, buildings, and floors in DNAC to be processed.
+        """
+        areas, buildings, floors = [], [], []
+        for location in locations:
+            for info in location["additionalInfo"]:
+                if info["attributes"].get("type") == "building":
+                    buildings.append(location)
+                    self.dnac_location_map[location["id"]]["loc_type"] = "building"
+                    break
+                elif info["attributes"].get("type") == "floor":
+                    floors.append(location)
+                    self.dnac_location_map[location["id"]]["loc_type"] = "floor"
+                    break
+            else:
+                areas.append(location)
+            if location.get("parentId"):
+                self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]]["name"]
+        # sort areas by length of siteHierarchy so that parent areas loaded before child areas.
+        areas = sorted(areas, key=lambda x: len(x["siteHierarchy"].split("/")))
+        return areas, buildings, floors
+
+    def build_dnac_location_map(self, locations: list):
+        """Build out the initial DNAC location map for Location ID to name and type.
+
+        Args:
+            locations (list): List of Locations (Sites) from DNAC.
+
+        Returns:
+            dict: Dictionary of Locations mapped with ID to their name and location type.
+        """
+        return {loc["id"]: {"name": loc["name"], "parent": None, "loc_type": "area"} for loc in locations}
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
@@ -99,5 +141,5 @@ class DnaCenterAdapter(DiffSync):
 
     def load(self):
         """Load data from DNA Center into DiffSync models."""
-        self.load_sites()
+        self.load_locations()
         self.load_devices()

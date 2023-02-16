@@ -100,3 +100,31 @@ class DnaCenterClient:
         except ApiError as err:
             LOGGER.error("Unable to get device detail information from DNA Center. %s", err)
         return dev_detail
+
+    @staticmethod
+    def parse_site_hierarchy(location_map: dict, site_hier: str):
+        """Parse siteHierarchyGraphId attribute from get_device_detail response.
+
+        Args:
+            location_map (dict): Dictionary mapping location ID to name, parent, and location type.
+            site_hier (str): The siteHierarchyGraphId field from the get_device_detail response.
+
+        Returns:
+            dict: Dictionary of location hierarchy for a device.
+        """
+        locations = site_hier.lstrip("/").rstrip("/").split("/")
+        loc_data = {
+            "areas": [],
+            "building": None,
+            "floor": None,
+        }
+        for location in locations:
+            loc_type = location_map[location]["loc_type"]
+            loc_name = location_map[location]["name"]
+            if loc_type == "area":
+                loc_data["areas"].append(loc_name)
+            if loc_type == "building":
+                loc_data["building"] = loc_name
+            if loc_type == "floor":
+                loc_data["floor"] = loc_name
+        return loc_data
