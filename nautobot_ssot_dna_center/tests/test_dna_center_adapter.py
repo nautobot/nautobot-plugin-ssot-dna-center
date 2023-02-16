@@ -7,7 +7,14 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
-from nautobot_ssot_dna_center.tests.fixtures import LOCATION_FIXTURE, DEVICE_FIXTURE
+from nautobot_ssot_dna_center.tests.fixtures import (
+    LOCATION_FIXTURE,
+    DEVICE_FIXTURE,
+    DEVICE_DETAIL_FIXTURE,
+    EXPECTED_AREAS,
+    EXPECTED_BUILDINGS,
+    EXPECTED_FLOORS,
+)
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
 
 
@@ -21,10 +28,18 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.dna_center_client = MagicMock()
         self.dna_center_client.get_locations.return_value = LOCATION_FIXTURE
         self.dna_center_client.get_devices.return_value = DEVICE_FIXTURE
-        self.dna_center_client.find_address_and_type.return_value = (
-            "123 Main St, New York, New York 12345",
-            "Building",
-        )
+        self.dna_center_client.find_address_and_type.side_effect = [
+            ("", "floor"),
+            ("", "building"),
+            ("", "area"),
+        ]
+        self.dna_center_client.find_latitude_and_longitude.return_value = ("", "")
+        self.dna_center_client.get_device_detail.return_value = DEVICE_DETAIL_FIXTURE
+        self.dna_center_client.parse_site_hierarchy.return_value = {
+            "areas": ["Global", "NY"],
+            "building": "Building1",
+            "floor": "Floor1",
+        }
 
         self.job = DnaCenterDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -32,9 +47,66 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         )
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client)
 
-    def test_data_loading(self):
-        """Test Nautobot SSoT for Cisco DNA Center load() function."""
-        self.dna_center.load()
+    def test_build_dnac_location_map(self):
+        """Test Nautobot adapter build_dnac_location_map method."""
+        actual = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
+        expected = {
+            "9e5f9fc2-032e-45e8-994c-4a00629648e8": {
+                "name": "Global",
+                "loc_type": "area",
+                "parent": None,
+            },
+            "49aa97a7-5d45-4303-89dd-f76dfbfc624a": {
+                "name": "Floor1",
+                "loc_type": "area",
+                "parent": None,
+            },
+            "5c59e37a-f12d-4e84-a085-ac5c02f240d4": {
+                "name": "Building1",
+                "loc_type": "area",
+                "parent": None,
+            },
+            "3f07768d-6b5c-4b4d-8577-29f765bd49c9": {
+                "name": "NY",
+                "loc_type": "area",
+                "parent": None,
+            },
+        }
+        self.assertEqual(actual, expected)
+
+    def test_parse_and_sort_locations(self):
+        """Test Nautobot adapter parse_and_sort_locations method."""
+        self.dna_center.dnac_location_map = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
+        actual = self.dna_center.parse_and_sort_locations(locations=LOCATION_FIXTURE)
+        expected = EXPECTED_AREAS, EXPECTED_BUILDINGS, EXPECTED_FLOORS
+        self.assertEqual(actual, expected)
+
+    def test_load_locations(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_locations() function."""
+        self.dna_center.load_locations()
+        area_actual, building_actual, floor_actual = [], [], []
+        area_expected = [area.get_unique_id() for area in self.dna_center.get_all("area")]
+        building_expected = [building.get_unique_id() for building in self.dna_center.get_all("building")]
+        floor_expected = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
+
+        for location in LOCATION_FIXTURE:
+            name = location["name"]
+            parent = self.dna_center.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
+            loc_name = f"{name}__{parent}"
+            if location.get("additionalInfo"):
+                for info in location["additionalInfo"]:
+                    if info["attributes"].get("type") == "area":
+                        area_actual.append(loc_name)
+                    if info["attributes"].get("type") == "building":
+                        building_actual.append(loc_name)
+                    if info["attributes"].get("type") == "floor":
+                        floor_actual.append(loc_name)
+            else:
+                area_actual.append(loc_name)
+        self.assertEqual(area_actual, area_expected)
+        self.assertEqual(building_actual, building_expected)
+        self.assertEqual(floor_actual, floor_expected)
+
         self.assertEqual(
             {
                 f"{site['name']}__{self.dna_center.dnac_site_map[site['parentId']] if site.get('parentId') else ''}"
