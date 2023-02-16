@@ -2,6 +2,7 @@
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from nautobot_ssot_dna_center.constants import DNAC_PLATFORM_MAPPER
 from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterArea,
     DnaCenterBuilding,
@@ -137,7 +138,41 @@ class DnaCenterAdapter(DiffSync):
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
-        pass
+        devices = self.conn.get_devices()
+        for dev in devices:
+            platform = "unknown"
+            vendor = "Cisco"
+            if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
+                platform = DNAC_PLATFORM_MAPPER[dev["softwareType"]]
+            else:
+                if not dev.get("softwareType") and "Meraki" in dev["family"]:
+                    platform = "meraki"
+            if "Juniper" in dev["type"]:
+                vendor = "Juniper"
+            dev_details = self.conn.get_device_detail(dev_id=dev["id"])
+            if dev_details and dev_details.get("siteHierarchyGraphId"):
+                loc_data = self.conn.parse_site_hierarchy(
+                    location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
+                )
+            else:
+                self.job.log_warning(message=f"Unable to find Site for {dev['hostname']} so skipping.")
+                continue
+            print(f"Loc Data: {loc_data}")
+            new_dev = self.device(
+                name=dev["hostname"],
+                status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
+                role=dev["role"],
+                vendor=vendor,
+                model=dev["platformId"],
+                area=loc_data["areas"][-1],
+                site=loc_data["building"],
+                floor=loc_data["floor"] if loc_data.get("floor") else "",
+                serial=dev.get("serialNumber"),
+                version=dev.get("softwareVersion"),
+                platform=platform,
+                uuid=None,
+            )
+            self.add(new_dev)
 
     def load(self):
         """Load data from DNA Center into DiffSync models."""

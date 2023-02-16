@@ -2,6 +2,10 @@
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from nautobot.dcim.models import Device as OrmDevice
+from nautobot.dcim.models import Location as OrmLocation
+from nautobot.dcim.models import LocationType as OrmLocationType
+from nautobot.dcim.models import Region as OrmRegion
 from nautobot.dcim.models import Site as OrmSite
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
@@ -94,9 +98,28 @@ class NautobotAdapter(DiffSync):
                 message=f"Unable to find LocationType: Floor so can't find floor Locations to load. {err}"
             )
 
+    def load_devices(self):
+        """Load Device data from Nautobot into DiffSync models."""
+        for dev in OrmDevice.objects.all():
+            new_dev = self.device(
+                name=dev.name,
+                status=dev.status.slug,
+                role=dev.devicerole.name,
+                vendor=dev.devicetype.manufacturer.name,
+                model=dev.devicetype.model,
+                area=dev.region.name if dev.region else "",
+                site=dev.site.name,
+                floor=dev.location.name if dev.location else "",
+                serial=dev.serial,
+                version=dev._custom_field_data["os_version"] if dev._custom_field_data.get("os_version") else "unknown",
+                platform=dev.platform.slug,
+                uuid=dev.id,
+            )
+            self.add(new_dev)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""
         self.load_regions()
         self.load_sites()
         self.load_floors()
+        self.load_devices()

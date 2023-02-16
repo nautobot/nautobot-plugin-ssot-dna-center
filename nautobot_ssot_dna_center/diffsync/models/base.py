@@ -59,15 +59,27 @@ class Device(DiffSyncModel):
     _attributes = (
         "status",
         "role",
+        "vendor",
         "model",
+        "area",
         "site",
+        "floor",
+        "serial",
+        "version",
+        "platform",
     )
     _children = {}
 
     name: str
     status: Optional[str]
     role: Optional[str]
-    model: Optional[str]
+    vendor: str
+    model: str
+    area: Optional[str]
     site: Optional[str]
+    floor: Optional[str]
+    serial: Optional[str]
+    version: Optional[str]
+    platform: str
 
-    uuid = Optional[UUID]
+    uuid: Optional[UUID]

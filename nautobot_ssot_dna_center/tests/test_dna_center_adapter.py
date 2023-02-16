@@ -107,10 +107,10 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.assertEqual(building_actual, building_expected)
         self.assertEqual(floor_actual, floor_expected)
 
+    def test_load_devices(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""
+        self.dna_center.load_devices()
         self.assertEqual(
-            {
-                f"{site['name']}__{self.dna_center.dnac_site_map[site['parentId']] if site.get('parentId') else ''}"
-                for site in LOCATION_FIXTURE
-            },
-            {site.get_unique_id() for site in self.dna_center.get_all("site")},
+            {dev["hostname"] for dev in DEVICE_FIXTURE},
+            {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
