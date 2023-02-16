@@ -32,8 +32,12 @@ class DnaCenterClient:
             LOGGER.error("Unable to connect to DNA Center: %s", err)
 
     def get_locations(self):
-        """Retrieve all location data from DNA Center."""
-        locations = {}
+        """Retrieve all location data from DNA Center.
+
+        Returns:
+            list: List of Locations (Sites) from DNAC.
+        """
+        locations = []
         try:
             locations = self.conn.sites.get_site()["response"]
         except ApiError as err:
