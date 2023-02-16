@@ -1,7 +1,7 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
 
 
-from nautobot.dcim.models import Device, DeviceRole, Site, Region
+from nautobot.dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Platform, Site, Region
 from nautobot.extras.models import Status
 from nautobot_ssot_dna_center.diffsync.models import base
 
@@ -81,11 +81,15 @@ class NautobotDevice(base.Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
+        manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         new_device = Device(
             name=ids["name"],
-            status=Status.objects.get_or_create(name=attrs["status"]),
+            status=Status.objects.get(name=attrs["status"]),
             role=DeviceRole.objects.get_or_create(name=attrs["role"]),
             site=Site.objects.get_or_create(name=attrs["site"]),
+            devicetype=DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer),
+            serial=attrs["serial"],
+            platform=Platform.objects.get_or_create(name=attrs["platform"]),
         )
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -99,6 +103,12 @@ class NautobotDevice(base.Device):
             device.role = DeviceRole.objects.get_or_create(name=attrs["role"])
         if "site" in attrs:
             device.site = Site.objects.get_or_create(name=attrs["site"])
+        if "model" in attrs:
+            device.devicetype = DeviceType.objects.get_or_create(model=attrs["model"])
+        if "serial" in attrs:
+            device.serial = attrs["serial"]
+        if "platform" in attrs:
+            device.platform = Platform.objects.get_or_create(name=attrs["platform"])
         device.validated_save()
         return super().update(attrs)
 
