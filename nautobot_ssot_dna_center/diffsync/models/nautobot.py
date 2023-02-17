@@ -14,7 +14,8 @@ from nautobot.dcim.models import (
     Location,
     LocationType,
 )
-from nautobot.extras.models import Status
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField, Status
 from nautobot_ssot_dna_center.diffsync.models import base
 
 
@@ -136,6 +137,16 @@ class NautobotDevice(base.Device):
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
             new_device.location = Location.objects.get_or_create(name=f"{site} - {ids['name']}", location_type=loc_type)
+        if attrs.get("version"):
+            _cf_dict = {
+                "name": "OS Version",
+                "slug": "os_version",
+                "type": CustomFieldTypeChoices.TYPE_TEXT,
+                "label": "OS Version",
+            }
+            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+            field.content_types.add(ContentType.objects.get_for_model(Device))
+            new_device.custom_field_data.update({"OS Version": attrs["version"]})
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -165,6 +176,16 @@ class NautobotDevice(base.Device):
             device.serial = attrs["serial"]
         if "platform" in attrs:
             device.platform = Platform.objects.get_or_create(name=attrs["platform"])
+        if "version" in attrs:
+            _cf_dict = {
+                "name": "OS Version",
+                "slug": "os_version",
+                "type": CustomFieldTypeChoices.TYPE_TEXT,
+                "label": "OS Version",
+            }
+            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+            field.content_types.add(ContentType.objects.get_for_model(Device))
+            device.custom_field_data.update({"OS Version": attrs["version"]})
         device.validated_save()
         return super().update(attrs)
 
