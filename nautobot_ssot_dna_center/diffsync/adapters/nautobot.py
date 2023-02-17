@@ -116,7 +116,7 @@ class NautobotAdapter(DiffSync):
                 site=dev.site.name,
                 floor=dev.location.name if dev.location else "",
                 serial=dev.serial,
-                version=dev._custom_field_data["os_version"] if dev._custom_field_data.get("os_version") else "unknown",
+                version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
                 platform=dev.platform.slug,
                 uuid=dev.id,
             )
