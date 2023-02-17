@@ -195,3 +195,20 @@ class NautobotDevice(base.Device):
         super().delete()
         dev.delete()
         return self
+
+
+class NautobotPort(base.Port):
+    """Nautobot implementation of Port DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Interface in Nautobot from Port object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Interface in Nautobot from Port object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Interface in Nautobot from Port object."""
+        return self
