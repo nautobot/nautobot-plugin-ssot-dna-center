@@ -31,14 +31,18 @@ class DnaCenterClient:
         except ApiError as err:
             LOGGER.error("Unable to connect to DNA Center: %s", err)
 
-    def get_sites(self):
-        """Retrieve all Site data from DNA Center."""
-        sites = {}
+    def get_locations(self):
+        """Retrieve all location data from DNA Center.
+
+        Returns:
+            list: List of Locations (Sites) from DNAC.
+        """
+        locations = []
         try:
-            sites = self.conn.sites.get_site()["response"]
+            locations = self.conn.sites.get_site()["response"]
         except ApiError as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
-        return sites
+        return locations
 
     @staticmethod
     def find_address_and_type(info: dict):
@@ -58,6 +62,24 @@ class DnaCenterClient:
                 site_type = element["attributes"]["type"]
         return (address, site_type)
 
+    @staticmethod
+    def find_latitude_and_longitude(info: dict):
+        """Find Site latitude and longitude from additionalInfo dict.
+
+        Args:
+            info (dict): Site additionalInfo property from DNA Center.
+
+        Returns:
+            tuple: Tuple of Site latitude and longitude.
+        """
+        latitude = ""
+        longitude = ""
+        for element in info:
+            if element["nameSpace"] == "Location":
+                latitude = element["attributes"]["latitude"]
+                longitude = element["attributes"]["longitude"]
+        return (latitude, longitude)
+
     def get_devices(self):
         """Retrieve all Device data from DNA Center."""
         dev_list = {}
@@ -66,3 +88,47 @@ class DnaCenterClient:
         except ApiError as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
+
+    def get_device_detail(self, dev_id: str):
+        """Retrieve all Device data from DNA Center.
+
+        Args:
+            dev_id (str): ID of device in DNAC to query for details.
+
+        Returns:
+            dict: Details about specified dev_id.
+        """
+        dev_detail = {}
+        try:
+            dev_detail = self.conn.devices.get_device_detail(search_by=dev_id, identifier="uuid")["response"]
+        except ApiError as err:
+            LOGGER.error("Unable to get device detail information from DNA Center. %s", err)
+        return dev_detail
+
+    @staticmethod
+    def parse_site_hierarchy(location_map: dict, site_hier: str):
+        """Parse siteHierarchyGraphId attribute from get_device_detail response.
+
+        Args:
+            location_map (dict): Dictionary mapping location ID to name, parent, and location type.
+            site_hier (str): The siteHierarchyGraphId field from the get_device_detail response.
+
+        Returns:
+            dict: Dictionary of location hierarchy for a device.
+        """
+        locations = site_hier.lstrip("/").rstrip("/").split("/")
+        loc_data = {
+            "areas": [],
+            "building": None,
+            "floor": None,
+        }
+        for location in locations:
+            loc_type = location_map[location]["loc_type"]
+            loc_name = location_map[location]["name"]
+            if loc_type == "area":
+                loc_data["areas"].append(loc_name)
+            if loc_type == "building":
+                loc_data["building"] = loc_name
+            if loc_type == "floor":
+                loc_data["floor"] = loc_name
+        return loc_data
