@@ -1,7 +1,19 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
 
-
-from nautobot.dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Platform, Site, Region
+from django.contrib.contenttypes.models import ContentType
+from nautobot.dcim.models import (
+    Device,
+    DeviceRole,
+    DeviceType,
+    Manufacturer,
+    Platform,
+    Site,
+    Rack,
+    RackGroup,
+    Region,
+    Location,
+    LocationType,
+)
 from nautobot.extras.models import Status
 from nautobot_ssot_dna_center.diffsync.models import base
 
@@ -12,14 +24,21 @@ class NautobotArea(base.Area):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
+        new_region = Region(
+            name=ids["name"],
+        )
+        if ids.get("parent"):
+            try:
+                new_region.parent = Region.objects.get(name=ids["parent"])
+            except Region.DoesNotExist as err:
+                diffsync.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
+        new_region.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
-
-    def update(self, attrs):
-        """Update Region in Nautobot from Area object."""
-        return super().update(attrs)
 
     def delete(self):
         """Delete Region in Nautobot from Area object."""
+        region = Region.objects.get(id=self.uuid)
+        self.diffsync.objects_to_delete["regions"].append(region)
         return self
 
 
@@ -33,12 +52,14 @@ class NautobotBuilding(base.Building):
             name=ids["name"],
             physical_address=attrs["address"] if attrs.get("address") else "",
             status=Status.objects.get(name="Active"),
+            latitude=attrs["latitude"],
+            longitude=attrs["longitude"],
         )
         try:
-            if attrs.get("parent"):
-                new_site.region = Region.objects.get(name=attrs["parent"])
+            if ids.get("area"):
+                new_site.region = Region.objects.get(name=ids["area"])
         except Region.DoesNotExist:
-            diffsync.job.log_info(message=f"Unable to find parent {attrs['parent']}")
+            diffsync.job.log_info(message=f"Unable to find parent {ids['area']}")
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -47,14 +68,17 @@ class NautobotBuilding(base.Building):
         site = Site.objects.get(id=self.uuid)
         if "address" in attrs:
             site.physical_address = attrs["address"]
+        if "latitude" in attrs:
+            site.latitude = attrs["latitude"]
+        if "longitude" in attrs:
+            site.longitude = attrs["longitude"]
         site.validated_save()
         return super().update(attrs)
 
     def delete(self):
         """Delete Site in Nautobot from Building object."""
         site = Site.objects.get(id=self.uuid)
-        super().delete()
-        site.delete()
+        self.diffsync.objects_to_delete["sites"].append(site)
         return self
 
 
@@ -64,14 +88,27 @@ class NautobotFloor(base.Floor):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create LocationType: Floor in Nautobot from Floor object."""
+        loc_type, created = LocationType.objects.get_or_create(
+            name="Floor",
+            nestable=False,
+        )
+        if created:
+            loc_type.content_types.add(ContentType.objects.get_for_model(Device))
+            loc_type.content_types.add(ContentType.objects.get_for_model(Rack))
+            loc_type.content_types.add(ContentType.objects.get_for_model(RackGroup))
+        new_floor = Location(
+            name=ids["name"],
+            status=Status.objects.get(name="Active"),
+            site=Site.objects.get(name=ids["building"]),
+            location_type=loc_type,
+        )
+        new_floor.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
-
-    def update(self, attrs):
-        """Update LocationType: Floor in Nautobot from Floor object."""
-        return super().update(attrs)
 
     def delete(self):
         """Delete LocationType: Floor in Nautobot from Floor object."""
+        floor = Location.objects.get(id=self.uuid)
+        self.diffsync.objects_to_delete["floors"].append(floor)
         return self
 
 
@@ -81,30 +118,49 @@ class NautobotDevice(base.Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
+        site = Site.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
+        device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
+        device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
+        platform, _ = Platform.objects.get_or_create(name=attrs["platform"])
+        status = Status.objects.get(name=attrs["status"])
         new_device = Device(
             name=ids["name"],
-            status=Status.objects.get(name=attrs["status"]),
-            role=DeviceRole.objects.get_or_create(name=attrs["role"]),
-            site=Site.objects.get_or_create(name=attrs["site"]),
-            devicetype=DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer),
+            status=status,
+            device_role=device_role,
+            site=site,
+            device_type=device_type,
             serial=attrs["serial"],
-            platform=Platform.objects.get_or_create(name=attrs["platform"]),
+            platform=platform,
         )
+        if attrs.get("floor"):
+            loc_type = LocationType.objects.get(name="Floor")
+            new_device.location = Location.objects.get_or_create(name=f"{site} - {ids['name']}", location_type=loc_type)
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update Device in Nautobot from NautobotDevice object."""
-        device = Device.objects.get(id=attrs["uuid"])
+        device = Device.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating device {device.name} with {attrs}")
         if "status" in attrs:
-            device.status = Status.objects.get_or_create(name=attrs["status"])
+            device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.role = DeviceRole.objects.get_or_create(name=attrs["role"])
+            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])
         if "site" in attrs:
-            device.site = Site.objects.get_or_create(name=attrs["site"])
+            device.site = Site.objects.get(name=attrs["site"])
+        if "floor" in attrs:
+            loc_type = LocationType.objects.get(name="Floor")
+            if attrs.get("site"):
+                site = attrs["site"]
+            else:
+                site = device.site.name
+            location, _ = Location.objects.get_or_create(
+                name=f"{site} - {attrs['floor']}", location_type=loc_type, site=Site.objects.get(name=site)
+            )
+            device.location = location
         if "model" in attrs:
-            device.devicetype = DeviceType.objects.get_or_create(model=attrs["model"])
+            device.device_type = DeviceType.objects.get_or_create(model=attrs["model"])
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "platform" in attrs:
