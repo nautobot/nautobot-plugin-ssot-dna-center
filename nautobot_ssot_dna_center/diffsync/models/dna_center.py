@@ -1,22 +1,56 @@
 """Nautobot SSoT for Cisco DNA Center DiffSync models for Nautobot SSoT for Cisco DNA Center SSoT."""
 
-from nautobot_ssot_dna_center.diffsync.models.base import Device, Site
+from nautobot_ssot_dna_center.diffsync.models.base import Area, Building, Floor, Device
 
 
-class DnaCenterSite(Site):
-    """DNA Center implementation of Site DiffSync model."""
+class DnaCenterArea(Area):
+    """DNA Center implementation of Building DiffSync model."""
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
-        """Create Site in DNA Center from Site object."""
+        """Create Area in DNA Center from Area object."""
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
-        """Update Site in DNA Center from Site object."""
+        """Update Area in DNA Center from Area object."""
         return super().update(attrs)
 
     def delete(self):
-        """Delete Site in DNA Center from Site object."""
+        """Delete Area in DNA Center from Area object."""
+        return self
+
+
+class DnaCenterBuilding(Building):
+    """DNA Center implementation of Building DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Building in DNA Center from Building object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Building in DNA Center from Building object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Building in DNA Center from Building object."""
+        return self
+
+
+class DnaCenterFloor(Floor):
+    """DNA Center implementation of Floor DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Floor in DNA Center from Floor object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Floor in DNA Center from Floor object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Floor in DNA Center from Floor object."""
         return self
 
 
