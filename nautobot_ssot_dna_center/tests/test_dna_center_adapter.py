@@ -91,7 +91,9 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
         for location in LOCATION_FIXTURE:
             name = location["name"]
-            parent = self.dna_center.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else ""
+            parent = (
+                self.dna_center.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else None
+            )
             loc_name = f"{name}__{parent}"
             if location.get("additionalInfo"):
                 for info in location["additionalInfo"]:
@@ -100,6 +102,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
                     if info["attributes"].get("type") == "building":
                         building_actual.append(loc_name)
                     if info["attributes"].get("type") == "floor":
+                        loc_name = f"{parent} - {loc_name}"
                         floor_actual.append(loc_name)
             else:
                 area_actual.append(loc_name)

@@ -53,7 +53,7 @@ class DnaCenterAdapter(DiffSync):
                     address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
                 new_area = self.area(
                     name=location["name"],
-                    parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else "",
+                    parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else None,
                     uuid=None,
                 )
                 self.add(new_area)
@@ -69,8 +69,8 @@ class DnaCenterAdapter(DiffSync):
                     name=location["name"],
                     address=address,
                     area=_area["name"],
-                    latitude=latitude,
-                    longitude=longitude,
+                    latitude=latitude[:9].rstrip("0"),
+                    longitude=longitude[:7].rstrip("0"),
                     uuid=None,
                 )
                 self.add(new_building)
@@ -79,13 +79,13 @@ class DnaCenterAdapter(DiffSync):
                     parent.add_child(new_building)
                 except ObjectNotFound as err:
                     self.job.log_warning(
-                        message=f"Unable to find area {_area['name']} for building {_area['parent']}. {err}"
+                        message=f"Unable to find area {_area['name']} for building {location['name']}. {err}"
                     )
             for location in floors:
                 _building = self.dnac_location_map[location["parentId"]] if location.get("parentId") else {}
                 new_floor = self.floor(
-                    name=location["name"],
-                    building=_building["name"] if _building.get("name") else "",
+                    name=f"{_building['name']} - {location['name']}",
+                    building=_building["name"],
                     uuid=None,
                 )
                 self.add(new_floor)
@@ -166,7 +166,7 @@ class DnaCenterAdapter(DiffSync):
                 model=dev["platformId"],
                 area=loc_data["areas"][-1],
                 site=loc_data["building"],
-                floor=loc_data["floor"] if loc_data.get("floor") else "",
+                floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
                 serial=dev.get("serialNumber"),
                 version=dev.get("softwareVersion"),
                 platform=platform,
