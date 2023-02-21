@@ -132,3 +132,19 @@ class DnaCenterClient:
             if loc_type == "floor":
                 loc_data["floor"] = loc_name
         return loc_data
+
+    def get_port_info(self, device_id: str):
+        """Retrieve all interfaces for specified device_id from DNAC.
+
+        Args:
+            device_id (str): The ID of the Device that the Ports belong to.
+
+        Returns:
+            List[dict]: List of dictionaries of information about Ports on specified device_id.
+        """
+        ports = []
+        try:
+            ports = self.conn.devices.get_interface_info_by_id(device_id=device_id)["response"]
+        except ApiError as err:
+            LOGGER.error("Unable to get port information from DNA Center. %s", err)
+        return ports
