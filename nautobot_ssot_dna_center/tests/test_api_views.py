@@ -1,6 +1,6 @@
 """Unit tests for nautobot_ssot_dna_center."""
+from unittest import skip
 from nautobot.utilities.testing import APIViewTestCases
-
 from nautobot_ssot_dna_center import models
 from nautobot_ssot_dna_center.tests import fixtures
 
@@ -41,3 +41,7 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
     @classmethod
     def setUpTestData(cls):
         fixtures.create_dnacinstance()
+
+    @skip("Not Implemented")
+    def test_get_object(self):
+        pass
