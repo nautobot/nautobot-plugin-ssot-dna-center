@@ -20,12 +20,12 @@ class DnaCenterClient:
         self.username = username
         self.password = password
         self.verify = verify
-        self.conn = self.connect()
+        self.conn = None
 
     def connect(self):  # pylint: disable=inconsistent-return-statements
         """Connect to Cisco DNA Center."""
         try:
-            return api.DNACenterAPI(
+            self.conn = api.DNACenterAPI(
                 base_url=self.base_url, username=self.username, password=self.password, verify=self.verify
             )
         except ApiError as err:

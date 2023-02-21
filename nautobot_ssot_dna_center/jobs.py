@@ -65,6 +65,7 @@ class DnaCenterDataSource(DataSource, Job):
                 port=instance.port,
                 verify=instance.verify,
             )
+            client.connect()
             self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client)
             self.source_adapter.load()
 
