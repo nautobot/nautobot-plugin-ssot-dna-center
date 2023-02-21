@@ -7,6 +7,8 @@ from nautobot_ssot_dna_center.tests.fixtures import (
     RECV_DEVICE_FIXTURE,
     LOCATION_FIXTURE,
     RECV_LOCATION_FIXTURE,
+    RECV_PORT_FIXTURE,
+    PORT_FIXTURE,
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
@@ -36,3 +38,9 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.dnac.conn.devices.get_device_list.return_value = RECV_DEVICE_FIXTURE
         actual = self.dnac.get_devices()
         self.assertEqual(actual, DEVICE_FIXTURE)
+
+    def test_get_port_info(self):
+        """Test the get_port_info method in DnaCenterClient."""
+        self.dnac.conn.devices.get_interface_info_by_id.return_value = RECV_PORT_FIXTURE
+        actual = self.dnac.get_port_info(device_id="1234567890")
+        self.assertEqual(actual, PORT_FIXTURE)
