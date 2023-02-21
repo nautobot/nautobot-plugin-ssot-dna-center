@@ -8,6 +8,7 @@ from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterBuilding,
     DnaCenterFloor,
     DnaCenterDevice,
+    DnaCenterPort,
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
@@ -19,6 +20,7 @@ class DnaCenterAdapter(DiffSync):
     building = DnaCenterBuilding
     floor = DnaCenterFloor
     device = DnaCenterDevice
+    port = DnaCenterPort
 
     top_level = ["area", "device"]
 
@@ -157,7 +159,6 @@ class DnaCenterAdapter(DiffSync):
             else:
                 self.job.log_warning(message=f"Unable to find Site for {dev['hostname']} so skipping.")
                 continue
-            print(f"Loc Data: {loc_data}")
             new_dev = self.device(
                 name=dev["hostname"],
                 status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
@@ -173,6 +174,36 @@ class DnaCenterAdapter(DiffSync):
                 uuid=None,
             )
             self.add(new_dev)
+            self.load_ports(device_id=dev["id"], device_name=dev["hostname"])
+
+    def load_ports(self, device_id: str, device_name: str):
+        """Load port info from DNAC into Port DiffSyncModel.
+
+        Args:
+            device_id (str): ID for Device in DNAC to retrieve ports for.
+            device_name (str): Name of Device associated with ports.
+        """
+        try:
+            device = self.get(self.device, device_name)
+            ports = self.conn.get_port_info(device_id=device_id)
+            for port in ports:
+                port_type = self.conn.get_port_type(port_info=port)
+                port_status = self.conn.get_port_status(port_info=port)
+                new_port = self.port(
+                    name=port["portName"],
+                    device=device_name,
+                    description=port["description"],
+                    port_type=port_type,
+                    port_mode="tagged" if port["portMode"] == "trunk" else "access",
+                    mac_addr=port["macAddress"],
+                    mtu=port["mtu"],
+                    status=port_status,
+                    uuid=None,
+                )
+                self.add(new_port)
+                device.add_child(new_port)
+        except ObjectNotFound as err:
+            self.job.log_warning(message=f"Unable to find Device {device_name} to assign Ports to so skipping. {err}")
 
     def load(self):
         """Load data from DNA Center into DiffSync models."""
