@@ -14,6 +14,7 @@ RECV_LOCATION_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixture
 DEVICE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_devices.json")
 RECV_DEVICE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_devices_recv.json")
 DEVICE_DETAIL_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_device_detail.json")
+PORT_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_ports.json")
 
 EXPECTED_AREAS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_areas.json")
 EXPECTED_BUILDINGS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_buildings.json")
