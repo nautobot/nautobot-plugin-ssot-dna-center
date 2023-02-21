@@ -108,3 +108,5 @@ class Port(DiffSyncModel):
     mac_addr: Optional[str]
     mtu: int
     status: str
+
+    uuid: Optional[UUID]
