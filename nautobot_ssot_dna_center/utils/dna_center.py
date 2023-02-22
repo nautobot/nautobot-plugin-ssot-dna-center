@@ -2,6 +2,7 @@
 
 import logging
 import re
+from typing import List
 from dnacentersdk import api
 from dnacentersdk.exceptions import ApiError
 from netutils.constants import BASE_INTERFACES
@@ -48,11 +49,11 @@ class DnaCenterClient:
         return locations
 
     @staticmethod
-    def find_address_and_type(info: dict):
+    def find_address_and_type(info: List[dict]):
         """Find Site address and type from additionalInfo dict.
 
         Args:
-            info (dict): Site additionalInfo property from DNA Center.
+            info (List[dict]): Site additionalInfo property from DNA Center.
 
         Returns:
             tuple: Tuple of Site address and type.

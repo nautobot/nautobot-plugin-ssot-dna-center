@@ -33,6 +33,24 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         actual = self.dnac.get_locations()
         self.assertEqual(actual, LOCATION_FIXTURE)
 
+    def test_find_address_and_type(self):
+        """Test the find_address_and_type method in DnaCenterClient."""
+        mock_info = [
+            {
+                "attributes": {
+                    "address": "123 Main St, New York, NY 12345",
+                    "country": "United States",
+                    "latitude": "38.581405819248886",
+                    "longitude": "-121.49309067224416",
+                    "type": "building",
+                },
+                "nameSpace": "Location",
+            }
+        ]
+        actual = self.dnac.find_address_and_type(info=mock_info)
+        expected = ("123 Main St, New York, NY 12345", "building")
+        self.assertEqual(actual, expected)
+
     def test_get_devices(self):
         """Test the get_devices method in DnaCenterClient."""
         self.dnac.conn.devices.get_device_list.return_value = RECV_DEVICE_FIXTURE
