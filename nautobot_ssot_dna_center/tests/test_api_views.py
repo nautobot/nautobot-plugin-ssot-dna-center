@@ -24,6 +24,7 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
     ]
     bulk_update_data = {"description": "Test Bulk Update"}
     brief_fields = [
+        "_custom_field_data",
         "auth_group",
         "created",
         "description",
@@ -44,4 +45,8 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
 
     @skip("Not Implemented")
     def test_get_object(self):
+        pass
+
+    @skip("Not Implemented")
+    def test_notes_url_on_object(self):
         pass
