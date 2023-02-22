@@ -5,6 +5,7 @@ from nautobot.dcim.models import (
     Device,
     DeviceRole,
     DeviceType,
+    Interface,
     Manufacturer,
     Platform,
     Site,
@@ -203,12 +204,44 @@ class NautobotPort(base.Port):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Interface in Nautobot from Port object."""
+        new_port = Interface(
+            name=ids["name"],
+            device=Device.objects.get(name=ids["device"]),
+            description=attrs["description"],
+            enabled=attrs["enabled"],
+            type=attrs["port_type"],
+            mode=attrs["port_mode"],
+            mac_address=attrs["mac_addr"],
+            mtu=attrs["mtu"],
+            status=Status.objects.get(slug=attrs["status"]),
+            mgmt_only=True if "Management" in ids["name"] else False,
+        )
+        new_port.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update Interface in Nautobot from Port object."""
+        port = Interface.objects.get(id=self.uuid)
+        if "description" in attrs:
+            port.description = attrs["description"]
+        if "port_type" in attrs:
+            port.type = attrs["port_type"]
+        if "port_mode" in attrs:
+            port.mode = attrs["port_mode"]
+        if "mac_addr" in attrs:
+            port.mac_address = attrs["mac_addr"]
+        if "mtu" in attrs:
+            port.mtu = attrs["mtu"]
+        if "status" in attrs:
+            port.status = Status.objects.get(slug=attrs["status"])
+        if "enabled" in attrs:
+            port.enabled = attrs["enabled"]
+        port.validated_save()
         return super().update(attrs)
 
     def delete(self):
         """Delete Interface in Nautobot from Port object."""
+        port = Interface.objects.get(id=self.uuid)
+        super().delete()
+        port.delete()
         return self
