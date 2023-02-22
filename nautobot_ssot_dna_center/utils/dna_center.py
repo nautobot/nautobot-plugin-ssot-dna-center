@@ -67,11 +67,11 @@ class DnaCenterClient:
         return (address, site_type)
 
     @staticmethod
-    def find_latitude_and_longitude(info: dict):
+    def find_latitude_and_longitude(info: List[dict]):
         """Find Site latitude and longitude from additionalInfo dict.
 
         Args:
-            info (dict): Site additionalInfo property from DNA Center.
+            info (List[dict]): Site additionalInfo property from DNA Center.
 
         Returns:
             tuple: Tuple of Site latitude and longitude.
