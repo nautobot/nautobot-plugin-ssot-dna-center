@@ -135,7 +135,7 @@ class NautobotAdapter(DiffSync):
                 enabled=port.enabled,
                 port_type=port.type,
                 port_mode=port.mode,
-                mac_addr=port.mac_address,
+                mac_addr=str(port.mac_address) if getattr(port, "mac_address") else None,
                 mtu=port.mtu,
                 status=port.status.slug,
                 uuid=port.id,
