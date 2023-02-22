@@ -40,3 +40,7 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
     @skip("Not Implemented")
     def test_queryset_to_csv(self):
         pass
+
+    @skip("Not Implemented")
+    def test_get_object_notes(self):
+        pass
