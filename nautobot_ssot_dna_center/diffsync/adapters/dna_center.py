@@ -201,7 +201,7 @@ class DnaCenterAdapter(DiffSync):
                     enabled=True if port["adminStatus"] == "UP" else False,
                     port_type=port_type,
                     port_mode="tagged" if port["portMode"] == "trunk" else "access",
-                    mac_addr=port["macAddress"],
+                    mac_addr=port["macAddress"].upper() if port.get("macAddress") else None,
                     mtu=port["mtu"],
                     status=port_status,
                     uuid=None,
