@@ -26,6 +26,7 @@ class NautobotArea(base.Area):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
+        diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
         new_region = Region(
             name=ids["name"],
         )
@@ -40,6 +41,7 @@ class NautobotArea(base.Area):
     def delete(self):
         """Delete Region in Nautobot from Area object."""
         region = Region.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Region {region.name}.")
         self.diffsync.objects_to_delete["regions"].append(region)
         return self
 
@@ -50,6 +52,7 @@ class NautobotBuilding(base.Building):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from Building object."""
+        diffsync.job.log_info(message=f"Creating Site {ids['name']}.")
         new_site = Site(
             name=ids["name"],
             physical_address=attrs["address"] if attrs.get("address") else "",
@@ -68,6 +71,7 @@ class NautobotBuilding(base.Building):
     def update(self, attrs):
         """Update Site in Nautobot from Building object."""
         site = Site.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
         if "address" in attrs:
             site.physical_address = attrs["address"]
         if "latitude" in attrs:
@@ -80,6 +84,7 @@ class NautobotBuilding(base.Building):
     def delete(self):
         """Delete Site in Nautobot from Building object."""
         site = Site.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
         self.diffsync.objects_to_delete["sites"].append(site)
         return self
 
@@ -90,6 +95,7 @@ class NautobotFloor(base.Floor):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create LocationType: Floor in Nautobot from Floor object."""
+        diffsync.job.log_info(message=f"Creating Floor {ids['name']}.")
         loc_type, created = LocationType.objects.get_or_create(
             name="Floor",
             nestable=False,
@@ -110,6 +116,7 @@ class NautobotFloor(base.Floor):
     def delete(self):
         """Delete LocationType: Floor in Nautobot from Floor object."""
         floor = Location.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Floor {floor.name} in {floor.site.name}.")
         self.diffsync.objects_to_delete["floors"].append(floor)
         return self
 
@@ -120,6 +127,7 @@ class NautobotDevice(base.Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
+        diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
         site = Site.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
@@ -157,7 +165,7 @@ class NautobotDevice(base.Device):
     def update(self, attrs):
         """Update Device in Nautobot from NautobotDevice object."""
         device = Device.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Updating device {device.name} with {attrs}")
+        self.diffsync.job.log_info(message=f"Updating Device {device.name} with {attrs}")
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
@@ -199,6 +207,7 @@ class NautobotDevice(base.Device):
     def delete(self):
         """Delete Device in Nautobot from NautobotDevice object."""
         dev = Device.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Device: {dev.name}.")
         super().delete()
         dev.delete()
         return self
@@ -210,6 +219,7 @@ class NautobotPort(base.Port):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Interface in Nautobot from Port object."""
+        diffsync.job.log_info(message=f"Creating Port {ids['name']} for Device {ids['device']}.")
         new_port = Interface(
             name=ids["name"],
             device=Device.objects.get(name=ids["device"]),
@@ -228,6 +238,7 @@ class NautobotPort(base.Port):
     def update(self, attrs):
         """Update Interface in Nautobot from Port object."""
         port = Interface.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Port {port.name} for Device {port.device.name}.")
         if "description" in attrs:
             port.description = attrs["description"]
         if "port_type" in attrs:
@@ -248,6 +259,7 @@ class NautobotPort(base.Port):
     def delete(self):
         """Delete Interface in Nautobot from Port object."""
         port = Interface.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Interface {port.name} for {port.device.name}.")
         super().delete()
         port.delete()
         return self
