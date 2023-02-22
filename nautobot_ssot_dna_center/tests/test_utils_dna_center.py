@@ -1,16 +1,18 @@
 """Tests of DNA Center utility methods."""
 
 from unittest.mock import MagicMock
+
 from nautobot.utilities.testing import TestCase
+
 from nautobot_ssot_dna_center.tests.fixtures import (
     DEVICE_DETAIL_FIXTURE,
     DEVICE_FIXTURE,
+    LOCATION_FIXTURE,
+    PORT_FIXTURE,
     RECV_DEVICE_DETAIL_FIXTURE,
     RECV_DEVICE_FIXTURE,
-    LOCATION_FIXTURE,
     RECV_LOCATION_FIXTURE,
     RECV_PORT_FIXTURE,
-    PORT_FIXTURE,
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
