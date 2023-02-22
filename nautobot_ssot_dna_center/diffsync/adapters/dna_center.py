@@ -152,7 +152,7 @@ class DnaCenterAdapter(DiffSync):
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
                 platform = DNAC_PLATFORM_MAPPER[dev["softwareType"]]
             else:
-                if not dev.get("softwareType") and "Meraki" in dev["family"]:
+                if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     platform = "meraki"
             if "Juniper" in dev["type"]:
                 vendor = "Juniper"
