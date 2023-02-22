@@ -80,6 +80,31 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         actual = self.dnac.get_device_detail(dev_id="1234567890")
         self.assertEqual(actual, DEVICE_DETAIL_FIXTURE)
 
+    def test_parse_site_hierarchy(self):
+        """Test the parse_site_hierarchy method in DnaCenterClient."""
+        mock_location_map = {
+            "1": {
+                "loc_type": "area",
+                "name": "Global",
+            },
+            "2": {
+                "loc_type": "area",
+                "name": "NY",
+            },
+            "3": {
+                "loc_type": "building",
+                "name": "Building1",
+            },
+            "4": {"loc_type": "floor", "name": "Floor1"},
+        }
+        actual = self.dnac.parse_site_hierarchy(location_map=mock_location_map, site_hier="1/2/3/4")
+        expected = {
+            "areas": ["Global", "NY"],
+            "building": "Building1",
+            "floor": "Floor1",
+        }
+        self.assertEqual(actual, expected)
+
     def test_get_port_info(self):
         """Test the get_port_info method in DnaCenterClient."""
         self.dnac.conn.devices.get_interface_info_by_id.return_value = RECV_PORT_FIXTURE
