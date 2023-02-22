@@ -137,7 +137,10 @@ class NautobotDevice(base.Device):
         )
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
-            new_device.location = Location.objects.get_or_create(name=f"{site} - {ids['name']}", location_type=loc_type)
+            loc, _ = Location.objects.get_or_create(
+                name=attrs["floor"], location_type=loc_type, site=site, status=Status.objects.get(name="Active")
+            )
+            new_device.location = loc
         if attrs.get("version"):
             _cf_dict = {
                 "name": "OS Version",
@@ -168,7 +171,10 @@ class NautobotDevice(base.Device):
             else:
                 site = device.site.name
             location, _ = Location.objects.get_or_create(
-                name=f"{site} - {attrs['floor']}", location_type=loc_type, site=Site.objects.get(name=site)
+                name=attrs["floor"],
+                location_type=loc_type,
+                site=Site.objects.get(name=site),
+                status=Status.objects.get(name="Active"),
             )
             device.location = location
         if "model" in attrs:
