@@ -142,6 +142,11 @@ class DnaCenterAdapter(DiffSync):
         """Load Device data from DNA Center info DiffSync models."""
         devices = self.conn.get_devices()
         for dev in devices:
+            if not dev.get("hostname"):
+                self.job.log_warning(
+                    message=f"Device found in DNAC without hostname so will be skipped. Ref device ID: {dev['id']}"
+                )
+                continue
             platform = "unknown"
             vendor = "Cisco"
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
