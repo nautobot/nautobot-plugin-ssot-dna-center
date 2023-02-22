@@ -132,6 +132,7 @@ class NautobotAdapter(DiffSync):
                 name=port.name,
                 device=port.device.name,
                 description=port.description,
+                enabled=port.enabled,
                 port_type=port.type,
                 port_mode=port.mode,
                 mac_addr=port.mac_address,

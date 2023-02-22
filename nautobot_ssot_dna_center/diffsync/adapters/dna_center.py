@@ -198,6 +198,7 @@ class DnaCenterAdapter(DiffSync):
                     name=port["portName"],
                     device=device_name,
                     description=port["description"],
+                    enabled=True if port["adminStatus"] == "UP" else False,
                     port_type=port_type,
                     port_mode="tagged" if port["portMode"] == "trunk" else "access",
                     mac_addr=port["macAddress"],
