@@ -1,6 +1,6 @@
 """Tests of DNA Center utility methods."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from parameterized import parameterized
 from nautobot.utilities.testing import TestCase
@@ -31,9 +31,18 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.verify = False
         self.dnac = DnaCenterClient(self.url, self.username, self.password, verify=self.verify)
 
+    @patch("nautobot_ssot_dna_center.utils.dna_center.api.DNACenterAPI")
+    def test_connect_success(self, mock_api):
+        self.dnac.connect()
+        mock_api.assert_called_once_with(  # nosec B106
+            base_url="https://dnac.testexample.com:443", username="testuser", password="testpassword", verify=False
+        )
+        self.assertIsNotNone(self.dnac.conn)
+
 
     def test_get_locations(self):
         """Test the get_locations method in DnaCenterClient."""
+        self.dnac.conn = MagicMock()
         self.dnac.conn.sites.get_site.return_value = RECV_LOCATION_FIXTURE
         actual = self.dnac.get_locations()
         self.assertEqual(actual, LOCATION_FIXTURE)
@@ -73,12 +82,14 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_devices(self):
         """Test the get_devices method in DnaCenterClient."""
+        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_list.return_value = RECV_DEVICE_FIXTURE
         actual = self.dnac.get_devices()
         self.assertEqual(actual, DEVICE_FIXTURE)
 
     def test_get_device_detail(self):
         """Test the get_device_detail method in DnaCenterClient."""
+        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_detail.return_value = RECV_DEVICE_DETAIL_FIXTURE
         actual = self.dnac.get_device_detail(dev_id="1234567890")
         self.assertEqual(actual, DEVICE_DETAIL_FIXTURE)
@@ -110,6 +121,7 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_port_info(self):
         """Test the get_port_info method in DnaCenterClient."""
+        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_interface_info_by_id.return_value = RECV_PORT_FIXTURE
         actual = self.dnac.get_port_info(device_id="1234567890")
         self.assertEqual(actual, PORT_FIXTURE)
