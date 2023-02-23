@@ -25,12 +25,12 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def setUp(self):
         """Setup DNAC instance."""
-        self.uri = "https://dnac.testexample.com"
+        self.url = "https://dnac.testexample.com"
         self.username = "testuser"
         self.password = "testpassword"  # nosec B105
         self.verify = False
-        self.dnac = DnaCenterClient(self.uri, self.username, self.password, verify=self.verify)
-        self.dnac.conn = MagicMock()
+        self.dnac = DnaCenterClient(self.url, self.username, self.password, verify=self.verify)
+
 
     def test_get_locations(self):
         """Test the get_locations method in DnaCenterClient."""
