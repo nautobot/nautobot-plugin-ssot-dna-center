@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+from parameterized import parameterized
 from nautobot.utilities.testing import TestCase
 
 from nautobot_ssot_dna_center.tests.fixtures import (
@@ -112,3 +113,17 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.dnac.conn.devices.get_interface_info_by_id.return_value = RECV_PORT_FIXTURE
         actual = self.dnac.get_port_info(device_id="1234567890")
         self.assertEqual(actual, PORT_FIXTURE)
+
+    mock_port_types = [
+        ("SVI", {"portType": "Ethernet SVI"}, "virtual"),
+        ("Service Module Interface", {"portType": "Service Module Interface"}, "virtual"),
+        ("FastEthernet", {"portType": "Ethernet Port", "portName": "FastEth0"}, "100base-tx"),
+        ("GigabitEthernet", {"portType": "Ethernet Port", "portName": "GigabitEthernet0/1"}, "1000base-t"),
+        ("Number port", {"portType": "Ethernet Port", "portName": "0/1"}, "other"),
+    ]
+
+    @parameterized.expand(mock_port_types, skip_on_empty=True)
+    def test_get_port_type(self, name, sent, received):  # pylint: disable=unused-argument
+        """Test the get_port_type method in DnaCenterClient."""
+        actual = self.dnac.get_port_type(port_info=sent)
+        self.assertEqual(actual, received)
