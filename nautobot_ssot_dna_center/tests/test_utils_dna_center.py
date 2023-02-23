@@ -127,3 +127,16 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         """Test the get_port_type method in DnaCenterClient."""
         actual = self.dnac.get_port_type(port_info=sent)
         self.assertEqual(actual, received)
+
+    mock_port_status = [
+        ("Maintenance", {"adminStatus": "DOWN", "status": "down"}, "maintenance"),
+        ("Failed", {"adminStatus": "UP", "status": "down"}, "failed"),
+        ("Planned", {"adminStatus": "DOWN", "status": "up"}, "planned"),
+        ("Active", {"adminStatus": "UP", "status": "up"}, "active"),
+    ]
+
+    @parameterized.expand(mock_port_status, skip_on_empty=True)
+    def test_get_port_status(self, name, sent, received):  # pylint: disable=unused-argument
+        """Test the get_port_status method in DnaCenterClient."""
+        actual = self.dnac.get_port_status(port_info=sent)
+        self.assertEqual(actual, received)
