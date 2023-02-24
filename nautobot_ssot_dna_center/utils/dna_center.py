@@ -5,7 +5,7 @@ import re
 from typing import List
 
 from dnacentersdk import api
-from dnacentersdk.exceptions import ApiError
+from dnacentersdk.exceptions import dnacentersdkException
 from netutils.constants import BASE_INTERFACES
 
 from nautobot_ssot_dna_center.constants import BASE_INTERFACE_MAP
@@ -34,7 +34,7 @@ class DnaCenterClient:
             self.conn = api.DNACenterAPI(
                 base_url=self.base_url, username=self.username, password=self.password, verify=self.verify
             )
-        except ApiError as err:
+        except dnacentersdkException as err:
             LOGGER.error("Unable to connect to DNA Center: %s", err)
 
     def get_locations(self):
@@ -46,7 +46,7 @@ class DnaCenterClient:
         locations = []
         try:
             locations = self.conn.sites.get_site()["response"]
-        except ApiError as err:
+        except dnacentersdkException as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
         return locations
 
@@ -91,7 +91,7 @@ class DnaCenterClient:
         dev_list = {}
         try:
             dev_list = self.conn.devices.get_device_list()["response"]
-        except ApiError as err:
+        except dnacentersdkException as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
 
@@ -107,7 +107,7 @@ class DnaCenterClient:
         dev_detail = {}
         try:
             dev_detail = self.conn.devices.get_device_detail(search_by=dev_id, identifier="uuid")["response"]
-        except ApiError as err:
+        except dnacentersdkException as err:
             LOGGER.error("Unable to get device detail information from DNA Center. %s", err)
         return dev_detail
 
@@ -151,7 +151,7 @@ class DnaCenterClient:
         ports = []
         try:
             ports = self.conn.devices.get_interface_info_by_id(device_id=device_id)["response"]
-        except ApiError as err:
+        except dnacentersdkException as err:
             LOGGER.error("Unable to get port information from DNA Center. %s", err)
         return ports
 
