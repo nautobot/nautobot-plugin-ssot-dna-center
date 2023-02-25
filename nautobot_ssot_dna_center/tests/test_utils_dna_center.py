@@ -129,6 +129,14 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         actual = self.dnac.get_device_detail(dev_id="1234567890")
         self.assertEqual(actual, DEVICE_DETAIL_FIXTURE)
 
+    def test_get_device_detail_catches_api_error(self):
+        """Test the get_device_detail method in DnaCenterClient catches dnacentersdkException."""
+        self.dnac.conn = MagicMock()
+        self.dnac.conn.devices.get_device_detail.side_effect = dnacentersdkException(self.mock_response)
+        with self.assertLogs(level="ERROR") as log:
+            self.dnac.get_device_detail(dev_id="1234567890")
+            self.assertIn("Unable to get device detail information from DNA Center.", log.output[0])
+
     def test_parse_site_hierarchy(self):
         """Test the parse_site_hierarchy method in DnaCenterClient."""
         mock_location_map = {
