@@ -66,6 +66,14 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         actual = self.dnac.get_locations()
         self.assertEqual(actual, LOCATION_FIXTURE)
 
+    def test_get_locations_catches_api_error(self):
+        """Test the get_locations method in DnaCenterClient catches dnacentersdkException."""
+        self.dnac.conn = MagicMock()
+        self.dnac.conn.sites.get_site.side_effect = dnacentersdkException(self.mock_response)
+        with self.assertLogs(level="ERROR") as log:
+            self.dnac.get_locations()
+            self.assertIn("Unable to get site information from DNA Center.", log.output[0])
+
     def test_find_address_and_type(self):
         """Test the find_address_and_type method in DnaCenterClient."""
         mock_info = [
