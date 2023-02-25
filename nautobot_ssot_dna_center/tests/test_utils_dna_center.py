@@ -1,10 +1,10 @@
 """Tests of DNA Center utility methods."""
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import MagicMock, patch, create_autospec
+from requests import Response
 from parameterized import parameterized
 from nautobot.utilities.testing import TestCase
-
+from dnacentersdk.exceptions import dnacentersdkException
 from nautobot_ssot_dna_center.tests.fixtures import (
     DEVICE_DETAIL_FIXTURE,
     DEVICE_FIXTURE,
@@ -31,6 +31,15 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.verify = False
         self.dnac = DnaCenterClient(self.url, self.username, self.password, verify=self.verify)
 
+        self.mock_response = create_autospec(Response)
+        self.mock_response.message = MagicMock()
+        self.mock_response.response = MagicMock()
+        self.mock_response.response.request = MagicMock()
+        self.mock_response.status_code = MagicMock()
+        self.mock_response.message.return_value = "Unable to connect to DNA Center!"
+        self.mock_response.response.return_value = {}
+        self.mock_response.status_code.return_value = 401
+
     @patch("nautobot_ssot_dna_center.utils.dna_center.api.DNACenterAPI")
     def test_connect_success(self, mock_api):
         self.dnac.connect()
@@ -39,6 +48,16 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         )
         self.assertIsNotNone(self.dnac.conn)
 
+    @patch("nautobot_ssot_dna_center.utils.dna_center.api.DNACenterAPI")
+    def test_connect_error(self, mock_api):
+        mock_api.side_effect = dnacentersdkException(self.mock_response)
+        with self.assertLogs(level="ERROR") as log:
+            self.dnac.connect()
+            self.assertIn("Unable to connect to DNA Center", log.output[0])
+        mock_api.assert_called_once_with(  # nosec B106
+            base_url="https://dnac.testexample.com:443", password="testpassword", username="testuser", verify=False
+        )
+        self.assertIsNone(self.dnac.conn)
 
     def test_get_locations(self):
         """Test the get_locations method in DnaCenterClient."""
