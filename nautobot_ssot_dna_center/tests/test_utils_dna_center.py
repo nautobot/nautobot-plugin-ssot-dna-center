@@ -169,6 +169,14 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         actual = self.dnac.get_port_info(device_id="1234567890")
         self.assertEqual(actual, PORT_FIXTURE)
 
+    def test_get_port_info_catches_api_error(self):
+        """Test the get_port_info method in DnaCenterClient catches dnacentersdkException."""
+        self.dnac.conn = MagicMock()
+        self.dnac.conn.devices.get_interface_info_by_id.side_effect = dnacentersdkException(self.mock_response)
+        with self.assertLogs(level="ERROR") as log:
+            self.dnac.get_port_info(device_id="1234567890")
+            self.assertIn("Unable to get port information from DNA Center.", log.output[0])
+
     mock_port_types = [
         ("SVI", {"portType": "Ethernet SVI"}, "virtual"),
         ("Service Module Interface", {"portType": "Service Module Interface"}, "virtual"),
