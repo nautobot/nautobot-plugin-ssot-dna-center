@@ -4,6 +4,7 @@ import uuid
 from unittest.mock import MagicMock
 
 from django.contrib.contenttypes.models import ContentType
+from diffsync.exceptions import ObjectNotFound
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
@@ -11,6 +12,7 @@ from nautobot_ssot_dna_center.tests.fixtures import (
     LOCATION_FIXTURE,
     DEVICE_FIXTURE,
     DEVICE_DETAIL_FIXTURE,
+    PORT_FIXTURE,
     EXPECTED_AREAS,
     EXPECTED_BUILDINGS,
     EXPECTED_FLOORS,
@@ -40,12 +42,16 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             "building": "Building1",
             "floor": "Floor1",
         }
+        self.dna_center_client.get_port_info.return_value = PORT_FIXTURE
+        self.dna_center_client.get_port_type.return_value = "virtual"
+        self.dna_center_client.get_port_status.return_value = "active"
 
         self.job = DnaCenterDataSource()
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client)
+        self.dna_center.load()
 
     def test_build_dnac_location_map(self):
         """Test Nautobot adapter build_dnac_location_map method."""
@@ -83,7 +89,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
     def test_load_locations(self):
         """Test Nautobot SSoT for Cisco DNA Center load_locations() function."""
-        self.dna_center.load_locations()
         area_actual, building_actual, floor_actual = [], [], []
         area_expected = [area.get_unique_id() for area in self.dna_center.get_all("area")]
         building_expected = [building.get_unique_id() for building in self.dna_center.get_all("building")]
@@ -112,8 +117,26 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
     def test_load_devices(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""
-        self.dna_center.load_devices()
         self.assertEqual(
             {dev["hostname"] for dev in DEVICE_FIXTURE},
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
+        )
+
+    def test_load_ports(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""
+        expected_ports = []
+        for dev in DEVICE_FIXTURE:
+            for port in PORT_FIXTURE:
+                if port.get("portName"):
+                    expected_ports.append(f"{port['portName']}__{dev['hostname']}")
+        actual_ports = [port.get_unique_id() for port in self.dna_center.get_all("port")]
+        self.assertEqual(expected_ports, actual_ports)
+
+    def test_load_ports_missing_device(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_ports() function with missing device."""
+        self.dna_center.get = MagicMock(side_effect=ObjectNotFound("Device not found"))
+        self.dna_center.job.log_warning = MagicMock()
+        self.dna_center.load_ports(device_id="1234567890", device_name="missing_device")
+        self.dna_center.job.log_warning.assert_called_once_with(
+            message="Unable to find Device missing_device to assign Ports to so skipping. Device not found"
         )

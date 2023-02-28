@@ -4,6 +4,7 @@ from collections import defaultdict
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Device as OrmDevice
+from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.dcim.models import Location as OrmLocation
 from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.dcim.models import Region as OrmRegion
@@ -13,6 +14,7 @@ from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotBuilding,
     NautobotFloor,
     NautobotDevice,
+    NautobotPort,
 )
 
 
@@ -23,6 +25,7 @@ class NautobotAdapter(DiffSync):
     building = NautobotBuilding
     floor = NautobotFloor
     device = NautobotDevice
+    port = NautobotPort
 
     top_level = ["area", "device"]
 
@@ -117,10 +120,29 @@ class NautobotAdapter(DiffSync):
                 floor=dev.location.name if dev.location else "",
                 serial=dev.serial,
                 version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
-                platform=dev.platform.slug,
+                platform=dev.platform.slug if dev.platform else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
+
+    def load_ports(self):
+        """Load Interface data from Nautobot into DiffSync models."""
+        for port in OrmInterface.objects.all():
+            new_port = self.port(
+                name=port.name,
+                device=port.device.name,
+                description=port.description,
+                enabled=port.enabled,
+                port_type=port.type,
+                port_mode=port.mode,
+                mac_addr=str(port.mac_address) if getattr(port, "mac_address") else None,
+                mtu=port.mtu if port.mtu else 1500,
+                status=port.status.slug,
+                uuid=port.id,
+            )
+            self.add(new_port)
+            device = self.get(self.device, port.device.name)
+            device.add_child(new_port)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""
@@ -128,3 +150,4 @@ class NautobotAdapter(DiffSync):
         self.load_sites()
         self.load_floors()
         self.load_devices()
+        self.load_ports()
