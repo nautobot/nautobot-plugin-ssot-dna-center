@@ -1,0 +1,126 @@
+"""Unit tests for the Nautobot DiffSync adapter."""
+
+import uuid
+from unittest.mock import MagicMock
+from django.contrib.contenttypes.models import ContentType
+from nautobot.dcim.models import (
+    Manufacturer,
+    Region,
+    Location,
+    LocationType,
+    Site,
+    Device,
+    DeviceType,
+    DeviceRole,
+    Platform,
+    Interface,
+)
+from nautobot.extras.models import Status, Job, JobResult
+from nautobot.utilities.testing import TransactionTestCase
+from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
+from nautobot_ssot_dna_center.diffsync.adapters.nautobot import NautobotAdapter
+
+
+class NautobotDiffSyncTestCase(TransactionTestCase):
+    """Test the NautobotAdapter class."""
+
+    databases = ("default", "job_logs")
+
+    def setUp(self):
+        """Per-test-case data setup."""
+        self.status_active = Status.objects.create(name="Active", slug="active")
+
+        global_region = Region.objects.create(name="Global", slug="global")
+        ny_region = Region.objects.create(name="NY", parent=global_region, slug="ny")
+
+        hq_site = Site.objects.create(region=ny_region, name="HQ", slug="hq", status=self.status_active)
+
+        self.loc_type = LocationType.objects.create(name="Floor", slug="floor")
+        self.loc_type.content_types.add(ContentType.objects.get_for_model(Device))
+        self.floor_loc = Location.objects.create(
+            name="HQ Floor 1", slug="hq_floor_1", site=hq_site, location_type=self.loc_type, status=self.status_active
+        )
+
+        cisco_manu = Manufacturer.objects.create(name="Cisco", slug="cisco")
+        csr_devicetype = DeviceType.objects.create(model="Cisco Catalyst 9300 Switch", manufacturer=cisco_manu)
+        leaf_role = DeviceRole.objects.create(name="LEAF", slug="leaf")
+        spine_role = DeviceRole.objects.create(name="SPINE", slug="spine")
+        ios_platform = Platform.objects.create(name="IOS", slug="cisco_ios", napalm_driver="ios")
+        leaf1_dev = Device.objects.create(
+            name="leaf1.abc.inc",
+            site=hq_site,
+            location=self.floor_loc,
+            status=self.status_active,
+            device_type=csr_devicetype,
+            device_role=leaf_role,
+            platform=ios_platform,
+        )
+        leaf2_dev = Device.objects.create(
+            name="leaf2.abc.inc",
+            site=hq_site,
+            location=self.floor_loc,
+            status=self.status_active,
+            device_type=csr_devicetype,
+            device_role=leaf_role,
+            platform=ios_platform,
+        )
+        spine1_dev = Device.objects.create(
+            name="spine1.abc.in",
+            site=hq_site,
+            location=self.floor_loc,
+            status=self.status_active,
+            device_type=csr_devicetype,
+            device_role=spine_role,
+            platform=ios_platform,
+        )
+
+        Interface.objects.create(device=leaf1_dev, name="Management", status=self.status_active, mtu=1500)
+        Interface.objects.create(device=leaf2_dev, name="Management", status=self.status_active, mtu=1500)
+        Interface.objects.create(device=spine1_dev, name="Management", status=self.status_active, mtu=1500)
+
+        job = DnaCenterDataSource()
+        job.job_result = JobResult.objects.create(
+            name=job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
+        )
+        self.nb_adapter = NautobotAdapter(job=job, sync=None)
+        self.nb_adapter.load()
+
+    def test_data_loading(self):
+        """Test the load() function."""
+        self.assertEqual(
+            ["Global__None", "NY__Global"],
+            sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("area")),
+        )
+        self.assertEqual(
+            ["HQ__NY"],
+            sorted(site.get_unique_id() for site in self.nb_adapter.get_all("building")),
+        )
+        self.assertEqual(
+            ["HQ Floor 1__HQ"],
+            sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("floor")),
+        )
+        self.assertEqual(
+            ["leaf1.abc.inc", "leaf2.abc.inc", "spine1.abc.in"],
+            sorted(dev.get_unique_id() for dev in self.nb_adapter.get_all("device")),
+        )
+        self.assertEqual(
+            ["Management__leaf1.abc.inc", "Management__leaf2.abc.inc", "Management__spine1.abc.in"],
+            sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
+        )
+
+    def test_load_regions_failure(self):
+        """Test the load_regions method failing with loading duplicate Regions."""
+        self.nb_adapter.job.log_warning = MagicMock()
+        self.nb_adapter.load_regions()
+        self.nb_adapter.job.log_warning.assert_called_with(message="Region NY already loaded so skipping duplicate.")
+
+    def test_load_floors_missing_location_type(self):
+        """Test the load_floors method failing with missing Location Type."""
+        self.nb_adapter.job.log_warning = MagicMock()
+        Device.objects.all().delete()
+        self.floor_loc.delete()
+        self.loc_type.delete()
+        self.nb_adapter.load_floors()
+        self.nb_adapter.job.log_warning.assert_called_with(
+            message="Unable to find LocationType: Floor so can't find floor Locations to load. LocationType matching query does not exist."
+        )

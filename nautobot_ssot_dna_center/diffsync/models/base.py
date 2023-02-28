@@ -68,7 +68,7 @@ class Device(DiffSyncModel):
         "version",
         "platform",
     )
-    _children = {}
+    _children = {"port": "ports"}
 
     name: str
     status: Optional[str]
@@ -81,5 +81,27 @@ class Device(DiffSyncModel):
     serial: Optional[str]
     version: Optional[str]
     platform: str
+    ports: Optional[List["Port"]] = list()
+
+    uuid: Optional[UUID]
+
+
+class Port(DiffSyncModel):
+    """DiffSync model for DNA Center interfaces."""
+
+    _modelname = "port"
+    _identifiers = ("name", "device")
+    _attributes = ("description", "port_type", "port_mode", "mac_addr", "mtu", "status", "enabled")
+    _children = {}
+
+    name: str
+    device: str
+    description: Optional[str]
+    port_type: str
+    port_mode: str
+    mac_addr: Optional[str]
+    mtu: int
+    status: str
+    enabled: bool
 
     uuid: Optional[UUID]

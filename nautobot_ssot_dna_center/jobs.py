@@ -1,9 +1,10 @@
 """Jobs for DNA Center SSoT integration."""
 
+from django.urls import reverse
 from diffsync import DiffSyncFlags
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar
-from nautobot_ssot.jobs.base import DataSource
+from nautobot_ssot.jobs.base import DataSource, DataMapping
 from nautobot_ssot_dna_center.diffsync.adapters import dna_center, nautobot
 from nautobot_ssot_dna_center.models import DNACInstance
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
@@ -38,12 +39,18 @@ class DnaCenterDataSource(DataSource, Job):
     @classmethod
     def config_information(cls):
         """Dictionary describing the configuration of this DataSource."""
-        return {}
+        return {"Instances": "Found in Plugins menu."}
 
     @classmethod
     def data_mappings(cls):
         """List describing the data mappings involved in this DataSource."""
-        return ()
+        return (
+            DataMapping("Areas", None, "Regions", reverse("dcim:region_list")),
+            DataMapping("Buildings", None, "Sites", reverse("dcim:site_list")),
+            DataMapping("Floors", None, "Locations", reverse("dcim:location_list")),
+            DataMapping("Devices", None, "Devices", reverse("dcim:device_list")),
+            DataMapping("Interfaces", None, "Interfaces", reverse("dcim:interface_list")),
+        )
 
     def load_source_adapter(self):
         """Load data from DNA Center into DiffSync models."""
@@ -65,6 +72,7 @@ class DnaCenterDataSource(DataSource, Job):
                 port=instance.port,
                 verify=instance.verify,
             )
+            client.connect()
             self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client)
             self.source_adapter.load()
 
