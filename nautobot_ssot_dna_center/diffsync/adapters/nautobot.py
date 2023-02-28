@@ -120,7 +120,7 @@ class NautobotAdapter(DiffSync):
                 floor=dev.location.name if dev.location else "",
                 serial=dev.serial,
                 version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
-                platform=dev.platform.slug,
+                platform=dev.platform.slug if dev.platform else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
@@ -136,7 +136,7 @@ class NautobotAdapter(DiffSync):
                 port_type=port.type,
                 port_mode=port.mode,
                 mac_addr=str(port.mac_address) if getattr(port, "mac_address") else None,
-                mtu=port.mtu,
+                mtu=port.mtu if port.mtu else 1500,
                 status=port.status.slug,
                 uuid=port.id,
             )
