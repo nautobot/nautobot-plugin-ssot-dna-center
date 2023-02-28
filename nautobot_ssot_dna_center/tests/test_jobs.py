@@ -42,3 +42,8 @@ class DnaCenterDataSourceJobTest(TestCase):
         self.assertIsNone(mappings[4].source_url)
         self.assertEqual("Interfaces", mappings[4].target_name)
         self.assertEqual(reverse("dcim:interface_list"), mappings[4].target_url)
+
+    def test_config_information(self):
+        """Verify the config_information() API."""
+        config_information = jobs.DnaCenterDataSource.config_information()
+        self.assertEqual(config_information, {"Instances": "Found in Plugins menu."})
