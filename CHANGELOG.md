@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.4.0 (2023-02-28)
+### Feature
+* ✨ Update CRUD methods for NautobotPort ([`2a34749`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/2a34749fde1d9eb6f1e2da7583a84756600ff0c5))
+* ✨ Add enabled attribute to Port model ([`8a82c4c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/8a82c4cb309f7661d417cad7f792e0ad9ed72452))
+* ✨ Add load methods for each Port derived model. ([`410d285`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/410d285dcbb2ffe3e6a9f64dfdc2790e99cca0e4))
+* ✨ Add method to get port information with device_id ([`0302bec`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/0302bec896474bdb9767326f67887459cfaf4851))
+* ✨ Add initial Port derived classes for DNAC and Nautobot ([`b8b28a7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b8b28a74058bea95cd710b8f9cee742d073d6de0))
+* ✨ Add Port base DiffSync model ([`dfe5b8c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/dfe5b8c6e357240361b90a110aea6182618ddc34))
+
+### Fix
+* 🔥 Remove garbage characters in test_jobs ([`9a4b159`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/9a4b1598ad2af4ed8f8ab10b05e06c8589b0f834))
+* 🐛 Ensure MAC address is string and formatted the same for diff ([`d01c28e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/d01c28e076623786ccf0be39d9288e403722303e))
+* 🐛 Ensure Location created with Site and Status and fix name. ([`363187d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/363187d839d235759cef2c569b122fb14621a34f))
+* 🐛 Add handling in case Device family attribute is null ([`41eeeda`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/41eeeda06670e770c31dfa3e752f8a198e2d154c))
+* 🐛 Skip Devices without a hostname ([`1cd0308`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1cd03086389722cc01d8456867b3c794b698189a))
+* 🐛 Update DnacInstance class to derive from PrimaryModel ([`f362fae`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/f362fae92b64831448578a9760c541bd896063c7))
+
+### Documentation
+* 📝 Add informational logging to Nautobot CRUD methods. ([`5c63618`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/5c636182a1d2bb787a48356eb2a0fed2737b97b0))
+
 ## v0.3.1 (2023-02-17)
 ### Fix
 * 🐛 Ensure version is recorded in Device CustomField ([`93b8282`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/93b82820579026422651077598b0133dab8017c7))
