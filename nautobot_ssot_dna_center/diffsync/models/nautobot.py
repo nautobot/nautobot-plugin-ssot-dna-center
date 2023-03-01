@@ -35,7 +35,7 @@ class NautobotArea(base.Area):
             try:
                 new_region.parent = Region.objects.get(name=ids["parent"])
             except Region.DoesNotExist as err:
-                diffsync.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
+                diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
         new_region.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
