@@ -1,6 +1,5 @@
 """Test DNACInstance."""
 from django.test import TestCase
-
 from nautobot_ssot_dna_center import models
 
 
@@ -9,7 +8,11 @@ class TestDNACInstance(TestCase):
 
     def test_create_dnacinstance_only_required(self):
         """Create with only required fields, and validate null description and __str__."""
-        dnacinstance = models.DNACInstance.objects.create(name="Development", slug="development")
+        dnacinstance = models.DNACInstance.objects.create(
+            name="Development",
+            slug="development",
+            host_url="https://dnac.testexample.com",
+        )
         self.assertEqual(dnacinstance.name, "Development")
         self.assertEqual(dnacinstance.description, "")
         self.assertEqual(str(dnacinstance), "Development")
@@ -18,11 +21,15 @@ class TestDNACInstance(TestCase):
     def test_create_dnacinstance_all_fields_success(self):
         """Create DNACInstance with all fields."""
         dnacinstance = models.DNACInstance.objects.create(
-            name="Development", slug="development", description="Development Test"
+            name="Development",
+            slug="development",
+            description="Development Test",
+            host_url="https://dnac.testexample.com",
         )
         self.assertEqual(dnacinstance.name, "Development")
         self.assertEqual(dnacinstance.slug, "development")
         self.assertEqual(dnacinstance.description, "Development Test")
+        self.assertTrue(dnacinstance.verify)
 
     def test_to_csv(self):
         """Test the to_csv() method to ensure it returns the correct data from the DNACInstance model."""
@@ -32,6 +39,7 @@ class TestDNACInstance(TestCase):
             "Test description",
             "https://dnac.testexample.com",
             443,
+            False,
         )
         actual_instance = models.DNACInstance(
             name="Test Instance",

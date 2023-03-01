@@ -1,10 +1,9 @@
 """Models for Nautobot SSoT for Cisco DNA Center."""
 
-# Django imports
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 
-# Nautobot imports
 from nautobot.core.fields import AutoSlugField
 from nautobot.core.models.generics import PrimaryModel
 
@@ -48,4 +47,12 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     def to_csv(self):
         """Export model fields to CSV file."""
-        return (self.name, self.slug, self.description, self.host_url, self.port)
+        return (self.name, self.slug, self.description, self.host_url, self.port, self.verify)
+
+    def clean(self):
+        """Validate all required object attributes have been defined or throw ValidationError."""
+        if not self.name:
+            raise ValidationError({"name": "Name for DNAC Instance must be defined."})
+
+        if not self.host_url:
+            raise ValidationError({"host_url": "Host URL for DNAC instance must be defined."})
