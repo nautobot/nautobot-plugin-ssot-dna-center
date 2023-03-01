@@ -82,6 +82,7 @@ class Device(DiffSyncModel):
     version: Optional[str]
     platform: str
     ports: Optional[List["Port"]] = list()
+    management_addr: str
 
     uuid: Optional[UUID]
 
@@ -103,5 +104,21 @@ class Port(DiffSyncModel):
     mtu: int
     status: str
     enabled: bool
+
+    uuid: Optional[UUID]
+
+
+class IPAddress(DiffSyncModel):
+    """DiffSync model for DNA Center IP addresses."""
+
+    _modelname = "ipaddress"
+    _identifiers = ("address", "device", "interface")
+    _attributes = ("primary",)
+    _children = {}
+
+    address: str
+    interface: str
+    device: str
+    primary: bool
 
     uuid: Optional[UUID]

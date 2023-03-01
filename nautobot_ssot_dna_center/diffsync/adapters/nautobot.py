@@ -9,12 +9,14 @@ from nautobot.dcim.models import Location as OrmLocation
 from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.dcim.models import Region as OrmRegion
 from nautobot.dcim.models import Site as OrmSite
+from nautobot.ipam.models import IPAddress as OrmIPAddress
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
     NautobotBuilding,
     NautobotFloor,
     NautobotDevice,
     NautobotPort,
+    NautobotIPAddress,
 )
 
 
@@ -26,8 +28,9 @@ class NautobotAdapter(DiffSync):
     floor = NautobotFloor
     device = NautobotDevice
     port = NautobotPort
+    ipaddress = NautobotIPAddress
 
-    top_level = ["area", "device"]
+    top_level = ["area", "device", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -121,6 +124,7 @@ class NautobotAdapter(DiffSync):
                 serial=dev.serial,
                 version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
                 platform=dev.platform.slug if dev.platform else "",
+                management_addr=dev.primary_ip.host if dev.primary_ip else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
@@ -144,6 +148,18 @@ class NautobotAdapter(DiffSync):
             device = self.get(self.device, port.device.name)
             device.add_child(new_port)
 
+    def load_ipaddresses(self):
+        """Load IPAddress data from Nautobot into DiffSync models."""
+        for ipaddr in OrmIPAddress.objects.all():
+            new_ipaddr = self.ipaddress(
+                address=str(ipaddr.address),
+                interface=ipaddr.assigned_object.name,
+                device=ipaddr.assigned_object.device.name if ipaddr.assigned_object.device else "",
+                primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
+                uuid=ipaddr.id,
+            )
+            self.add(new_ipaddr)
+
     def load(self):
         """Load data from Nautobot into DiffSync models."""
         self.load_regions()
@@ -151,3 +167,4 @@ class NautobotAdapter(DiffSync):
         self.load_floors()
         self.load_devices()
         self.load_ports()
+        self.load_ipaddresses()
