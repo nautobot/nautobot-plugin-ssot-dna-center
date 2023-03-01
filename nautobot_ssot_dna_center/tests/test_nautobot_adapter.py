@@ -16,6 +16,7 @@ from nautobot.dcim.models import (
     Interface,
 )
 from nautobot.extras.models import Status, Job, JobResult
+from nautobot.ipam.models import IPAddress
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
 from nautobot_ssot_dna_center.diffsync.adapters.nautobot import NautobotAdapter
@@ -26,9 +27,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     databases = ("default", "job_logs")
 
-    def setUp(self):
+    def setUp(self):  # pylint: disable=too-many-locals
         """Per-test-case data setup."""
         self.status_active = Status.objects.create(name="Active", slug="active")
+        self.status_active.validated_save()
 
         global_region = Region.objects.create(name="Global", slug="global")
         ny_region = Region.objects.create(name="NY", parent=global_region, slug="ny")
@@ -74,9 +76,36 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             platform=ios_platform,
         )
 
-        Interface.objects.create(device=leaf1_dev, name="Management", status=self.status_active, mtu=1500)
-        Interface.objects.create(device=leaf2_dev, name="Management", status=self.status_active, mtu=1500)
-        Interface.objects.create(device=spine1_dev, name="Management", status=self.status_active, mtu=1500)
+        leaf1_mgmt = Interface.objects.create(device=leaf1_dev, name="Management", status=self.status_active, mtu=1500)
+        leaf2_mgmt = Interface.objects.create(device=leaf2_dev, name="Management", status=self.status_active, mtu=1500)
+        spine1_mgmt = Interface.objects.create(
+            device=spine1_dev, name="Management", status=self.status_active, mtu=1500
+        )
+
+        leaf1_ip = IPAddress.objects.create(
+            address="10.10.10.1/24",
+            status=self.status_active,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object_id=leaf1_mgmt.id,
+        )
+        leaf1_mgmt.device.primary_ip4 = leaf1_ip
+        leaf1_mgmt.device.save()
+
+        leaf2_ip = IPAddress.objects.create(
+            address="10.10.11.1/24",
+            status=self.status_active,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object_id=leaf2_mgmt.id,
+        )
+        leaf2_mgmt.device.primary_ip4 = leaf2_ip
+        leaf2_mgmt.device.save()
+
+        IPAddress.objects.create(
+            address="10.10.12.1/24",
+            status=self.status_active,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object_id=spine1_mgmt.id,
+        )
 
         job = DnaCenterDataSource()
         job.job_result = JobResult.objects.create(
@@ -106,6 +135,14 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.assertEqual(
             ["Management__leaf1.abc.inc", "Management__leaf2.abc.inc", "Management__spine1.abc.in"],
             sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
+        )
+        self.assertEqual(
+            [
+                "10.10.10.1/24__leaf1.abc.inc__Management",
+                "10.10.11.1/24__leaf2.abc.inc__Management",
+                "10.10.12.1/24__spine1.abc.in__Management",
+            ],
+            sorted(ipaddr.get_unique_id() for ipaddr in self.nb_adapter.get_all("ipaddress")),
         )
 
     def test_load_regions_failure(self):

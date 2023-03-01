@@ -1,6 +1,6 @@
 """Nautobot SSoT for Cisco DNA Center DiffSync models for Nautobot SSoT for Cisco DNA Center SSoT."""
 
-from nautobot_ssot_dna_center.diffsync.models.base import Area, Building, Floor, Device, Port
+from nautobot_ssot_dna_center.diffsync.models.base import Area, Building, Floor, Device, Port, IPAddress
 
 
 class DnaCenterArea(Area):
@@ -85,4 +85,21 @@ class DnaCenterPort(Port):
 
     def delete(self):
         """Delete Interface in DNA Center from Port object."""
+        return self
+
+
+class DnaCenterIPAddress(IPAddress):
+    """DNA Center implementation of IPAddress DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IPAddress in DNA Center from IPAddress object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IPAddress in DNA Center from IPAddress object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IPAddress in DNA Center from IPAddress object."""
         return self

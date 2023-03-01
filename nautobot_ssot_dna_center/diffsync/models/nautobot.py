@@ -17,6 +17,7 @@ from nautobot.dcim.models import (
 )
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status
+from nautobot.ipam.models import IPAddress
 from nautobot_ssot_dna_center.diffsync.models import base
 
 
@@ -262,4 +263,54 @@ class NautobotPort(base.Port):
         self.diffsync.job.log_info(message=f"Deleting Interface {port.name} for {port.device.name}.")
         super().delete()
         port.delete()
+        return self
+
+
+class NautobotIPAddress(base.IPAddress):
+    """Nautobot implementation of the IPAddress DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IPAddress in Nautobot from IPAddress object."""
+        try:
+            device = Device.objects.get(name=ids["device"])
+            intf = Interface.objects.get(name=ids["interface"], device=device)
+            new_ip = IPAddress(
+                address=ids["address"],
+                assigned_object_type=ContentType.objects.get_for_model(Interface),
+                assigned_object_id=intf.id,
+                status=Status.objects.get(name="Active"),
+            )
+            new_ip.validated_save()
+            if attrs.get("primary"):
+                if ":" in ids["address"]:
+                    device.primary_ip6 = new_ip
+                else:
+                    device.primary_ip4 = new_ip
+                device.validated_save()
+        except Device.DoesNotExist as err:
+            diffsync.job.log_warning(
+                message=f"Unable to find Device {ids['device']} for IPAddress {ids['address']}. {err}"
+            )
+            return None
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IPAddress in Nautobot from IPAddress object."""
+        ipaddr = IPAddress.objects.get(id=self.uuid)
+        if attrs.get("primary"):
+            device = ipaddr.assigned_object.device
+            if ":" in self.address:
+                device.primary_ip6 = ipaddr
+            else:
+                device.primary_ip4 = ipaddr
+            device.validated_save()
+        ipaddr.validated_save()
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IPAddress in Nautobot from IPAddress object."""
+        ipaddr = IPAddress.objects.get(id=self.uuid)
+        super().delete()
+        ipaddr.delete()
         return self
