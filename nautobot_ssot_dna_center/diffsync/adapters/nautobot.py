@@ -3,6 +3,7 @@
 from collections import defaultdict
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.dcim.models import Location as OrmLocation
@@ -159,6 +160,25 @@ class NautobotAdapter(DiffSync):
                 uuid=ipaddr.id,
             )
             self.add(new_ipaddr)
+
+    def sync_complete(self, source: DiffSync, *args, **kwargs):
+        """Clean up function for DiffSync sync.
+
+        Once the sync is complete, this function runs deleting any objects
+        from Nautobot that need to be deleted in a specific order.
+
+        Args:
+            source (DiffSync): DiffSync
+        """
+        for grouping in ["floors", "sites", "regions"]:
+            for nautobot_obj in self.objects_to_delete[grouping]:
+                try:
+                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    nautobot_obj.delete()
+                except ProtectedError:
+                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+            self.objects_to_delete[grouping] = []
+        return super().sync_complete(source, *args, **kwargs)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""
