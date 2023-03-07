@@ -82,7 +82,7 @@ class Device(DiffSyncModel):
     version: Optional[str]
     platform: str
     ports: Optional[List["Port"]] = list()
-    management_addr: str
+    management_addr: Optional[str]
 
     uuid: Optional[UUID]
 

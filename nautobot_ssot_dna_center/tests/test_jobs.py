@@ -43,6 +43,11 @@ class DnaCenterDataSourceJobTest(TestCase):
         self.assertEqual("Interfaces", mappings[4].target_name)
         self.assertEqual(reverse("dcim:interface_list"), mappings[4].target_url)
 
+        self.assertEqual("IP Addresses", mappings[5].source_name)
+        self.assertIsNone(mappings[5].source_url)
+        self.assertEqual("IP Addresses", mappings[5].target_name)
+        self.assertEqual(reverse("ipam:ipaddress_list"), mappings[5].target_url)
+
     def test_config_information(self):
         """Verify the config_information() API."""
         config_information = jobs.DnaCenterDataSource.config_information()

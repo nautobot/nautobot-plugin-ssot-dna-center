@@ -179,7 +179,7 @@ class DnaCenterAdapter(DiffSync):
                 serial=dev.get("serialNumber"),
                 version=dev.get("softwareVersion"),
                 platform=platform,
-                management_addr=dev["managementIpAddress"],
+                management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
                 uuid=None,
             )
             self.add(new_dev)
