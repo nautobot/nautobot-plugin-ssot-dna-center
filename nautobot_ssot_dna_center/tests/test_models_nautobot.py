@@ -41,6 +41,7 @@ class TestNautobotArea(TestCase):
         )
 
     def test_delete(self):
+        """Validate the NautobotArea delete() method deletes a Region."""
         ds_mock_region = MagicMock(spec=Region)
         ds_mock_region.uuid = "1234567890"
         ds_mock_region.diffsync = MagicMock()
