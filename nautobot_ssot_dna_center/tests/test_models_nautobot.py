@@ -108,3 +108,17 @@ class TestNautobotBuilding(TransactionTestCase):
         self.assertEqual(str(hq_site.latitude).rstrip("0"), update_attrs["latitude"])
         self.assertEqual(f"{hq_site.longitude:.3f}", update_attrs["longitude"])
         self.assertEqual(actual, test_bldg)
+
+    def test_delete(self):
+        """Validate the NautobotBuilding delete() method deletes a Site."""
+        ds_mock_site = MagicMock(spec=Site)
+        ds_mock_site.uuid = "1234567890"
+        ds_mock_site.diffsync = MagicMock()
+        ds_mock_site.diffsync.job.log_info = MagicMock()
+        mock_site = MagicMock(spec=Region)
+        mock_site.name = "Test"
+        site_get_mock = MagicMock(return_value=mock_site)
+        with patch.object(Site.objects, "get", site_get_mock):
+            result = NautobotBuilding.delete(ds_mock_site)
+        ds_mock_site.diffsync.job.log_info.assert_called_once_with(message="Deleting Site Test.")
+        self.assertEqual(ds_mock_site, result)
