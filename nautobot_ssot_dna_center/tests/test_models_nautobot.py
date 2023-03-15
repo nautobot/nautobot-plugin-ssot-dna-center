@@ -1,10 +1,26 @@
 """Test the DiffSync models for Nautobot."""
 from unittest.mock import MagicMock, patch
 from diffsync import DiffSync
-from nautobot.dcim.models import Region, Site, Location
+from django.contrib.contenttypes.models import ContentType
+from nautobot.dcim.models import (
+    Region,
+    Site,
+    Location,
+    LocationType,
+    Device,
+    DeviceRole,
+    DeviceType,
+    Platform,
+    Manufacturer,
+)
 from nautobot.extras.models import Status
 from nautobot.utilities.testing import TransactionTestCase
-from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding, NautobotFloor
+from nautobot_ssot_dna_center.diffsync.models.nautobot import (
+    NautobotArea,
+    NautobotBuilding,
+    NautobotFloor,
+    NautobotDevice,
+)
 
 
 class TestNautobotArea(TransactionTestCase):
@@ -14,7 +30,6 @@ class TestNautobotArea(TransactionTestCase):
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
         self.diffsync.job.log_info = MagicMock()
-        self.diffsync.job.log_warning = MagicMock()
 
     def test_create(self):
         """Validate the NautobotArea create() method creates a Region."""
@@ -64,7 +79,6 @@ class TestNautobotBuilding(TransactionTestCase):
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
         self.diffsync.job.log_info = MagicMock()
-        self.diffsync.job.log_warning = MagicMock()
 
     def test_create_wo_parent(self):
         """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
@@ -135,7 +149,6 @@ class TestNautobotFloor(TransactionTestCase):
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
         self.diffsync.job.log_info = MagicMock()
-        self.diffsync.job.log_warning = MagicMock()
 
     def test_create(self):
         """Test the NautobotFloor create() method creates a LocationType: Floor."""
@@ -164,3 +177,51 @@ class TestNautobotFloor(TransactionTestCase):
             result = NautobotFloor.delete(ds_mock_floor)
         ds_mock_floor.diffsync.job.log_info.assert_called_once_with(message="Deleting Floor Test in HQ.")
         self.assertEqual(ds_mock_floor, result)
+
+
+class TestNautobotDevice(TransactionTestCase):
+    """Test NautobotDevice class."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.diffsync = DiffSync()
+        self.diffsync.job = MagicMock()
+        self.diffsync.job.log_info = MagicMock()
+
+        self.status_active = Status.objects.get(name="Active")
+        self.ids = {"name": "core-router.testexample.com"}
+        self.attrs = {
+            "floor": "HQ - Floor 1",
+            "model": "Nexus 9300",
+            "platform": "cisco_ios",
+            "role": "core",
+            "serial": "1234567890",
+            "site": "HQ",
+            "status": "Active",
+            "vendor": "Cisco",
+            "version": "16.12.3",
+        }
+
+    def test_create(self):
+        """Test the NautobotDevice create() method creates a Device."""
+        hq_site = Site.objects.create(name="HQ", slug="hq", status=self.status_active)
+        floors = LocationType.objects.create(name="Floor", slug="floor")
+        floors.content_types.add(ContentType.objects.get_for_model(Device))
+
+        NautobotDevice.create(self.diffsync, self.ids, self.attrs)
+        self.diffsync.job.log_info.assert_called_once_with(message="Creating Device core-router.testexample.com.")
+        new_dev = Device.objects.get(name=self.ids["name"])
+        self.assertEqual(new_dev.site, hq_site)
+        self.assertEqual(new_dev.device_role, DeviceRole.objects.get(slug=self.attrs["role"]))
+        self.assertEqual(
+            new_dev.device_type,
+            DeviceType.objects.get(
+                model=self.attrs["model"], manufacturer=Manufacturer.objects.get(name=self.attrs["vendor"])
+            ),
+        )
+        self.assertEqual(new_dev.platform, Platform.objects.get(slug=self.attrs["platform"]))
+        self.assertEqual(new_dev.serial, self.attrs["serial"])
+        self.assertTrue(new_dev.location)
+        self.assertEqual(new_dev.location.name, self.attrs["floor"])
+        self.assertTrue(new_dev.custom_field_data["OS Version"], self.attrs["version"])
