@@ -1,10 +1,10 @@
 """Test the DiffSync models for Nautobot."""
 from unittest.mock import MagicMock, patch
 from diffsync import DiffSync
-from nautobot.dcim.models import Region, Site
+from nautobot.dcim.models import Region, Site, Location
 from nautobot.extras.models import Status
 from nautobot.utilities.testing import TransactionTestCase
-from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding
+from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding, NautobotFloor
 
 
 class TestNautobotArea(TransactionTestCase):
@@ -115,10 +115,52 @@ class TestNautobotBuilding(TransactionTestCase):
         ds_mock_site.uuid = "1234567890"
         ds_mock_site.diffsync = MagicMock()
         ds_mock_site.diffsync.job.log_info = MagicMock()
-        mock_site = MagicMock(spec=Region)
+        mock_site = MagicMock(spec=Site)
         mock_site.name = "Test"
         site_get_mock = MagicMock(return_value=mock_site)
         with patch.object(Site.objects, "get", site_get_mock):
             result = NautobotBuilding.delete(ds_mock_site)
         ds_mock_site.diffsync.job.log_info.assert_called_once_with(message="Deleting Site Test.")
         self.assertEqual(ds_mock_site, result)
+
+
+class TestNautobotFloor(TransactionTestCase):
+    """Test the NautobotFloor class."""
+
+    databases = ("default", "job_logs")
+
+    def setUp(self):
+        super().setUp()
+
+        self.diffsync = DiffSync()
+        self.diffsync.job = MagicMock()
+        self.diffsync.job.log_info = MagicMock()
+        self.diffsync.job.log_warning = MagicMock()
+
+    def test_create(self):
+        """Test the NautobotFloor create() method creates a LocationType: Floor."""
+        hq_site = Site.objects.create(name="HQ", slug="HQ", status=Status.objects.get(name="Active"))
+        hq_site.validated_save()
+        ids = {"name": "HQ - Floor 1", "building": "HQ"}
+        attrs = {}
+        result = NautobotFloor.create(self.diffsync, ids, attrs)
+        self.assertIsInstance(result, NautobotFloor)
+        self.diffsync.job.log_info.assert_called_with(message="Creating Floor HQ - Floor 1.")
+        floor_obj = Location.objects.get(name="HQ - Floor 1")
+        self.assertEqual(floor_obj.name, ids["name"])
+        self.assertEqual(floor_obj.site, hq_site)
+
+    def test_delete(self):
+        """Validate the NautobotFloor delete() method deletes a LocationType: Floor."""
+        ds_mock_floor = MagicMock(spec=Location)
+        ds_mock_floor.uuid = "1234567890"
+        ds_mock_floor.diffsync = MagicMock()
+        ds_mock_floor.diffsync.job.log_info = MagicMock()
+        mock_floor = MagicMock(spec=Location)
+        mock_floor.name = "Test"
+        mock_floor.site.name = "HQ"
+        floor_get_mock = MagicMock(return_value=mock_floor)
+        with patch.object(Location.objects, "get", floor_get_mock):
+            result = NautobotFloor.delete(ds_mock_floor)
+        ds_mock_floor.diffsync.job.log_info.assert_called_once_with(message="Deleting Floor Test in HQ.")
+        self.assertEqual(ds_mock_floor, result)
