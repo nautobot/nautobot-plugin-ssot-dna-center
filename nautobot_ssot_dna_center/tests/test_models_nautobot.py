@@ -1,9 +1,7 @@
 """Test the DiffSync models for Nautobot."""
-from unittest import skip
 from unittest.mock import MagicMock, patch
 from diffsync import DiffSync
 from nautobot.dcim.models import Region, Site
-from nautobot.extras.models import Status
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding
 
@@ -54,27 +52,35 @@ class TestNautobotArea(TransactionTestCase):
         self.assertEqual(ds_mock_region, result)
 
 
-@skip("Failing for some reason")
 class TestNautobotBuilding(TransactionTestCase):
     """Test the NautobotBuilding class."""
 
     databases = ("default", "job_logs")
 
     def setUp(self):
-        self.status_active = Status.objects.create(name="Active", slug="active")
-        self.status_active.validated_save()
+        super().setUp()
 
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
         self.diffsync.job.log_info = MagicMock()
         self.diffsync.job.log_warning = MagicMock()
 
-    def test_create(self):
-        """Validate the NautobotBuilding create() method creates a Site."""
+    def test_create_wo_parent(self):
+        """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
         ids = {"name": "HQ", "area": "NY"}
         attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890"}
-        self.assertTrue(Status.objects.get(name="Active"))
-        print(Status.objects.get(name="Active").id)
+        result = NautobotBuilding.create(self.diffsync, ids, attrs)
+        self.assertIsInstance(result, NautobotBuilding)
+        self.diffsync.job.log_info.assert_called_with(message="Unable to find parent NY")
+        site_obj = Site.objects.get(name=ids["name"])
+        self.assertFalse(getattr(site_obj, "region"))
+
+    def test_create_w_parent(self):
+        """Validate the NautobotBuilding create() method creates a Site with a matching parent Region."""
+        ids = {"name": "HQ", "area": "NY"}
+        attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890"}
+        ny_area = Region.objects.create(name="NY", slug="ny")
+        ny_area.validated_save()
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.log_info.assert_called_once_with(message="Creating Site HQ.")
