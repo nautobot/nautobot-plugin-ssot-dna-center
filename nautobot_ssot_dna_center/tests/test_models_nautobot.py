@@ -2,6 +2,7 @@
 from unittest.mock import MagicMock, patch
 from diffsync import DiffSync
 from nautobot.dcim.models import Region, Site
+from nautobot.extras.models import Status
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.models.nautobot import NautobotArea, NautobotBuilding
 
@@ -86,3 +87,24 @@ class TestNautobotBuilding(TransactionTestCase):
         self.diffsync.job.log_info.assert_called_once_with(message="Creating Site HQ.")
         site_obj = Site.objects.get(name=ids["name"])
         self.assertEqual(site_obj.region.name, ids["area"])
+
+    def test_update(self):
+        """Validate the NautobotBuilding update() method updates a Site."""
+        hq_site = Site.objects.create(name="HQ", slug="hq", status=Status.objects.get(name="Active"))
+        hq_site.validated_save()
+        test_bldg = NautobotBuilding(name="HQ", address="", area="NY", latitude="", longitude="", uuid=hq_site.id)
+        test_bldg.diffsync = MagicMock()
+        test_bldg.diffsync.job = MagicMock()
+        test_bldg.diffsync.job.log_info = MagicMock()
+        update_attrs = {
+            "address": "123 Main St",
+            "latitude": "12.345",
+            "longitude": "-67.890",
+        }
+        actual = NautobotBuilding.update(self=test_bldg, attrs=update_attrs)
+        test_bldg.diffsync.job.log_info.assert_called_once_with(message="Updating Site HQ.")
+        hq_site.refresh_from_db()
+        self.assertEqual(hq_site.physical_address, update_attrs["address"])
+        self.assertEqual(str(hq_site.latitude).rstrip("0"), update_attrs["latitude"])
+        self.assertEqual(f"{hq_site.longitude:.3f}", update_attrs["longitude"])
+        self.assertEqual(actual, test_bldg)
