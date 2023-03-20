@@ -122,3 +122,8 @@ class IPAddress(DiffSyncModel):
     primary: bool
 
     uuid: Optional[UUID]
+
+
+Area.update_forward_refs()
+Building.update_forward_refs()
+Device.update_forward_refs()
