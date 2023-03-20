@@ -161,3 +161,30 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.job.log_warning.assert_called_with(
             message="Unable to find LocationType: Floor so can't find floor Locations to load. LocationType matching query does not exist."
         )
+
+    def test_sync_complete(self):
+        """Test the sync_complete() method in the NautobotAdapter."""
+        self.nb_adapter.objects_to_delete = {
+            "floors": [MagicMock(), MagicMock()],
+            "sites": [MagicMock()],
+            "regions": [],
+        }
+        self.nb_adapter.job = MagicMock()
+        self.nb_adapter.job.log_info = MagicMock()
+
+        deleted_objs = []
+        for group in ["floors", "sites"]:
+            deleted_objs.extend(self.nb_adapter.objects_to_delete[group])
+
+        self.nb_adapter.sync_complete(diff=MagicMock(), source=MagicMock())
+
+        for obj in deleted_objs:
+            self.assertTrue(obj.delete.called)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["floors"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["sites"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["regions"]), 0)
+        self.assertTrue(self.nb_adapter.job.log_info.called)
+        self.assertTrue(self.nb_adapter.job.log_info.call_count, 3)
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[0].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[1].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[2].startswith("Deleting"))
