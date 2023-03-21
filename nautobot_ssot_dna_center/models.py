@@ -19,6 +19,14 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
     )
     port = models.IntegerField(default=443)
     verify = models.BooleanField(verbose_name="Verify SSL", default=True)
+    tenant = models.ForeignKey(
+        to="tenancy.Tenant",
+        on_delete=models.SET_NULL,
+        default=None,
+        blank=True,
+        null=True,
+        verbose_name="Tenant",
+    )
     auth_group = models.ForeignKey(
         to="extras.SecretsGroup",
         on_delete=models.SET_NULL,
@@ -28,7 +36,7 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
         verbose_name="Secrets Group",
     )
 
-    csv_headers = ["name", "slug", "description", "host_url", "port", "verify"]
+    csv_headers = ["name", "slug", "description", "host_url", "port", "verify", "tenant"]
 
     class Meta:
         """Meta class."""
@@ -47,7 +55,7 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     def to_csv(self):
         """Export model fields to CSV file."""
-        return (self.name, self.slug, self.description, self.host_url, self.port, self.verify)
+        return (self.name, self.slug, self.description, self.host_url, self.port, self.verify, self.tenant)
 
     def clean(self):
         """Validate all required object attributes have been defined or throw ValidationError."""

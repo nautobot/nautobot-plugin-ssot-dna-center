@@ -27,6 +27,7 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
         "name",
         "port",
         "slug",
+        "tenant",
         "url",
         "verify",
     ]
