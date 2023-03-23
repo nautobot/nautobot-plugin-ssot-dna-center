@@ -1,7 +1,8 @@
 """Unit tests for the Nautobot DiffSync adapter."""
 
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
     Manufacturer,
@@ -27,20 +28,43 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     databases = ("default", "job_logs")
 
+    def __init__(self, *args, **kwargs):
+        """Initialize shared variables."""
+        super().__init__(*args, **kwargs)
+        self.ny_region = None
+        self.hq_site = None
+        self.loc_type = None
+        self.floor_loc = None
+
     def setUp(self):  # pylint: disable=too-many-locals
         """Per-test-case data setup."""
         self.status_active = Status.objects.create(name="Active", slug="active")
         self.status_active.validated_save()
 
-        global_region = Region.objects.create(name="Global", slug="global")
-        ny_region = Region.objects.create(name="NY", parent=global_region, slug="ny")
+        job = DnaCenterDataSource()
+        job.job_result = JobResult.objects.create(
+            name=job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
+        )
+        self.nb_adapter = NautobotAdapter(job=job, sync=None)
+        self.nb_adapter.job = MagicMock()
+        self.nb_adapter.job.log_info = MagicMock()
+        self.nb_adapter.job.log_warning = MagicMock()
 
-        hq_site = Site.objects.create(region=ny_region, name="HQ", slug="hq", status=self.status_active)
+    def build_nautobot_objects(self):
+        """Build out Nautobot objects to test loading."""
+        global_region = Region.objects.create(name="Global", slug="global")
+        self.ny_region = Region.objects.create(name="NY", parent=global_region, slug="ny")
+
+        self.hq_site = Site.objects.create(region=self.ny_region, name="HQ", slug="hq", status=self.status_active)
 
         self.loc_type = LocationType.objects.create(name="Floor", slug="floor")
         self.loc_type.content_types.add(ContentType.objects.get_for_model(Device))
         self.floor_loc = Location.objects.create(
-            name="HQ Floor 1", slug="hq_floor_1", site=hq_site, location_type=self.loc_type, status=self.status_active
+            name="HQ Floor 1",
+            slug="hq_floor_1",
+            site=self.hq_site,
+            location_type=self.loc_type,
+            status=self.status_active,
         )
 
         cisco_manu = Manufacturer.objects.create(name="Cisco", slug="cisco")
@@ -50,7 +74,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         ios_platform = Platform.objects.create(name="IOS", slug="cisco_ios", napalm_driver="ios")
         leaf1_dev = Device.objects.create(
             name="leaf1.abc.inc",
-            site=hq_site,
+            site=self.hq_site,
             location=self.floor_loc,
             status=self.status_active,
             device_type=csr_devicetype,
@@ -59,7 +83,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         leaf2_dev = Device.objects.create(
             name="leaf2.abc.inc",
-            site=hq_site,
+            site=self.hq_site,
             location=self.floor_loc,
             status=self.status_active,
             device_type=csr_devicetype,
@@ -68,7 +92,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         spine1_dev = Device.objects.create(
             name="spine1.abc.in",
-            site=hq_site,
+            site=self.hq_site,
             location=self.floor_loc,
             status=self.status_active,
             device_type=csr_devicetype,
@@ -107,15 +131,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_id=spine1_mgmt.id,
         )
 
-        job = DnaCenterDataSource()
-        job.job_result = JobResult.objects.create(
-            name=job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
-        )
-        self.nb_adapter = NautobotAdapter(job=job, sync=None)
-        self.nb_adapter.load()
-
     def test_data_loading(self):
         """Test the load() function."""
+        self.build_nautobot_objects()
+        self.nb_adapter.load()
         self.assertEqual(
             ["Global__None", "NY__Global"],
             sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("area")),
@@ -147,7 +166,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     def test_load_regions_failure(self):
         """Test the load_regions method failing with loading duplicate Regions."""
-        self.nb_adapter.job.log_warning = MagicMock()
+        self.build_nautobot_objects()
+        self.nb_adapter.load()
         self.nb_adapter.load_regions()
         self.nb_adapter.job.log_warning.assert_called_with(message="Region NY already loaded so skipping duplicate.")
 
@@ -155,8 +175,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         """Test the load_floors method failing with missing Location Type."""
         self.nb_adapter.job.log_warning = MagicMock()
         Device.objects.all().delete()
-        self.floor_loc.delete()
-        self.loc_type.delete()
+        Location.objects.all().delete()
+        LocationType.objects.all().delete()
         self.nb_adapter.load_floors()
         self.nb_adapter.job.log_warning.assert_called_with(
             message="Unable to find LocationType: Floor so can't find floor Locations to load. LocationType matching query does not exist."
