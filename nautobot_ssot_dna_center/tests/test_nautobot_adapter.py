@@ -171,6 +171,25 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load_regions()
         self.nb_adapter.job.log_warning.assert_called_with(message="Region NY already loaded so skipping duplicate.")
 
+    @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmSite")
+    def test_load_sites_failure(self, mock_sites):
+        """Test the load_sites method failing with missing Area."""
+        mock_site = MagicMock()
+        mock_site.name = "Test"
+        mock_site.region = MagicMock()
+        mock_site.region.name = "Missing"
+        mock_site.region.parent = None
+        mock_site.physical_address = "123 Main St"
+        mock_site.latitude = 42.654321
+        mock_site.longitude = -71.345678
+        mock_site.tenant = None
+        mock_site.id = uuid.uuid4()
+        mock_sites.objects.all.return_value = [mock_site]
+        self.nb_adapter.get = MagicMock()
+        self.nb_adapter.get.side_effect = [ObjectNotFound(), ObjectNotFound()]
+        self.nb_adapter.load_sites()
+        self.nb_adapter.job.log_warning.assert_called_once_with(message="Unable to load area Missing for Test. ")
+
     def test_load_floors_missing_location_type(self):
         """Test the load_floors method failing with missing Location Type."""
         self.nb_adapter.job.log_warning = MagicMock()
