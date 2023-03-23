@@ -3,6 +3,7 @@
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.constants import DNAC_PLATFORM_MAPPER
 from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterArea,
@@ -27,19 +28,21 @@ class DnaCenterAdapter(DiffSync):
 
     top_level = ["area", "device", "ipaddress"]
 
-    def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, **kwargs):
+    def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, tenant: Tenant, **kwargs):
         """Initialize DNA Center.
 
         Args:
             job (object, optional): DNA Center job. Defaults to None.
             sync (object, optional): DNA Center DiffSync. Defaults to None.
             client (DnaCenterClient): DNA Center API client connection object.
+            tenant (Tenant): Tenant to attach to imported objects. Can be set to None for no Tenant to be attached.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
         self.conn = client
         self.dnac_location_map = {}
+        self.tenant = tenant
 
     def load_locations(self):
         """Load location data from DNA Center into DiffSync models."""
@@ -76,6 +79,7 @@ class DnaCenterAdapter(DiffSync):
                     area=_area["name"],
                     latitude=latitude[:9].rstrip("0"),
                     longitude=longitude[:7].rstrip("0"),
+                    tenant=self.tenant.name if self.tenant else None,
                     uuid=None,
                 )
                 self.add(new_building)
@@ -91,6 +95,7 @@ class DnaCenterAdapter(DiffSync):
                 new_floor = self.floor(
                     name=f"{_building['name']} - {location['name']}",
                     building=_building["name"],
+                    tenant=self.tenant.name if self.tenant else None,
                     uuid=None,
                 )
                 self.add(new_floor)
@@ -179,6 +184,7 @@ class DnaCenterAdapter(DiffSync):
                 serial=dev.get("serialNumber"),
                 version=dev.get("softwareVersion"),
                 platform=platform,
+                tenant=self.tenant.name if self.tenant else None,
                 management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
                 uuid=None,
             )
@@ -245,6 +251,7 @@ class DnaCenterAdapter(DiffSync):
                 device=device_name,
                 interface=interface,
                 primary=primary,
+                tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
             )
             self.add(new_ip)

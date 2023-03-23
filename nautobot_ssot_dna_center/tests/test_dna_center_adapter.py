@@ -50,7 +50,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
-        self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client)
+        self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client, tenant=None)
         self.dna_center.load()
 
     def test_build_dnac_location_map(self):

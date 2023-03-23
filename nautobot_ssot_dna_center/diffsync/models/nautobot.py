@@ -18,6 +18,7 @@ from nautobot.dcim.models import (
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status
 from nautobot.ipam.models import IPAddress
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
 
 
@@ -61,6 +62,8 @@ class NautobotBuilding(base.Building):
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
         )
+        if attrs.get("tenant"):
+            new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
         try:
             if ids.get("area"):
                 new_site.region = Region.objects.get(name=ids["area"])
@@ -79,6 +82,11 @@ class NautobotBuilding(base.Building):
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
             site.longitude = attrs["longitude"]
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                site.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                site.tenant = None
         site.validated_save()
         return super().update(attrs)
 
@@ -105,14 +113,29 @@ class NautobotFloor(base.Floor):
             loc_type.content_types.add(ContentType.objects.get_for_model(Device))
             loc_type.content_types.add(ContentType.objects.get_for_model(Rack))
             loc_type.content_types.add(ContentType.objects.get_for_model(RackGroup))
+        loc_type.validated_save()
         new_floor = Location(
             name=ids["name"],
             status=Status.objects.get(name="Active"),
             site=Site.objects.get(name=ids["building"]),
             location_type=loc_type,
         )
+        if attrs.get("tenant"):
+            new_floor.tenant = Tenant.objects.get(name=attrs["tenant"])
         new_floor.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update LocationType: Floor in Nautobot from Floor object."""
+        floor = Location.objects.get(name=self.name, location_type=LocationType.objects.get(name="Floor"))
+        self.diffsync.job.log_info(message=f"Updating Floor {floor.name} with {attrs}")
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                floor.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                floor.tenant = None
+        floor.validated_save()
+        return super().update(attrs)
 
     def delete(self):
         """Delete LocationType: Floor in Nautobot from Floor object."""
@@ -150,6 +173,8 @@ class NautobotDevice(base.Device):
                 name=attrs["floor"], location_type=loc_type, site=site, status=Status.objects.get(name="Active")
             )
             new_device.location = loc
+        if attrs.get("tenant"):
+            new_device.tenant = Tenant.objects.get(name=attrs["tenant"])
         if attrs.get("version"):
             _cf_dict = {
                 "name": "OS Version",
@@ -192,6 +217,11 @@ class NautobotDevice(base.Device):
             device.serial = attrs["serial"]
         if "platform" in attrs:
             device.platform = Platform.objects.get_or_create(name=attrs["platform"])
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                device.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                device.tenant = None
         if "version" in attrs:
             _cf_dict = {
                 "name": "OS Version",
@@ -281,6 +311,8 @@ class NautobotIPAddress(base.IPAddress):
                 assigned_object_id=intf.id,
                 status=Status.objects.get(name="Active"),
             )
+            if attrs.get("tenant"):
+                new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
             new_ip.validated_save()
             if attrs.get("primary"):
                 if ":" in ids["address"]:
@@ -305,6 +337,11 @@ class NautobotIPAddress(base.IPAddress):
             else:
                 device.primary_ip4 = ipaddr
             device.validated_save()
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                ipaddr.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                ipaddr.tenant = None
         ipaddr.validated_save()
         return super().update(attrs)
 
