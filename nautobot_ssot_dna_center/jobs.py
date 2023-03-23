@@ -76,7 +76,9 @@ class DnaCenterDataSource(DataSource, Job):
                 verify=instance.verify,
             )
             client.connect()
-            self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client)
+            self.source_adapter = dna_center.DnaCenterAdapter(
+                job=self, sync=self.sync, client=client, tenant=instance.tenant
+            )
             self.source_adapter.load()
 
     def load_target_adapter(self):

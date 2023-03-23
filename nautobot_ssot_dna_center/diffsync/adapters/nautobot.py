@@ -71,6 +71,7 @@ class NautobotAdapter(DiffSync):
                     area=site.region.name if site.region else "",
                     latitude=str(site.latitude).rstrip("0"),
                     longitude=str(site.longitude).rstrip("0"),
+                    tenant=site.tenant.name if site.tenant else None,
                     uuid=site.id,
                 )
                 self.add(new_building)
@@ -92,6 +93,7 @@ class NautobotAdapter(DiffSync):
                 new_floor = self.floor(
                     name=location.name,
                     building=location.site.name if location.site else "",
+                    tenant=location.tenant.name if location.tenant else None,
                     uuid=location.id,
                 )
                 self.add(new_floor)
@@ -125,6 +127,7 @@ class NautobotAdapter(DiffSync):
                 serial=dev.serial,
                 version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
                 platform=dev.platform.slug if dev.platform else "",
+                tenant=dev.tenant.name if dev.tenant else None,
                 management_addr=dev.primary_ip.host if dev.primary_ip else "",
                 uuid=dev.id,
             )
@@ -157,6 +160,7 @@ class NautobotAdapter(DiffSync):
                 interface=ipaddr.assigned_object.name,
                 device=ipaddr.assigned_object.device.name if ipaddr.assigned_object.device else "",
                 primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
+                tenant=ipaddr.tenant.name if ipaddr.tenant else None,
                 uuid=ipaddr.id,
             )
             self.add(new_ipaddr)
