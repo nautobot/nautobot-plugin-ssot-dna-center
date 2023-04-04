@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.5.0 (2023-04-04)
+### Feature
+* ✨ Add tenant to supported models ([`b1fa72c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b1fa72c7f832d39d77b6f6a16a6ee05d96ceb080))
+* ✨ Add Tenant to DNACInstance model ([`ca70638`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/ca70638e8d24cb2b1c1b1b84206925be91837cf3))
+* ✨ Add DNA Center logo and update data mappings for IP Addresses ([`1cb2f19`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1cb2f19a014eec7f58a8d1e9aad8fd0df71ecd20))
+* ✨ Add sync_complete method to process deletion of location objects ([`0a0990c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/0a0990cbbb4f0b6940ffc1c00bee733a15e2d085))
+* ✨ Add validation to DNACInstance model and update tests accordingly ([`5512b0a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/5512b0a81219cfbc62b92a18395d83be1f31bd2f))
+* ✨ Add IPAddresses from Interfaces to imports and CRUD ops to Nautobot. ([`6dc9181`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/6dc9181884bfa4a4d905dc5d584c28ceb3bb2e2c))
+
+### Fix
+* 🐛 Add Tenant to forms to enable specifying in DNACInstance. ([`354644f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/354644f9d5a1709277c4bcc74e466c161c277abe))
+* Correct slug for OS Version CF to be a dash ([`f998470`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/f99847017688096c030bb8d233f4f020b5396a31))
+* Add update_forward_ref to all parent models ([`78c161e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/78c161e8d8b5a744b4a6f36d4acff90725ae5907))
+* 🐛 Make management_addr attribute optional as it's not being evaluated in attribute list ([`9c43390`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/9c433907bce0e4c59209770100413063f5fa4963))
+
+### Documentation
+* 📝 Add docstring to test_delete method ([`31abd51`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/31abd51a0254dd58d6b5ddebac0900b28f95d2a6))
+
 ## v0.4.0 (2023-02-28)
 ### Feature
 * ✨ Update CRUD methods for NautobotPort ([`2a34749`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/2a34749fde1d9eb6f1e2da7583a84756600ff0c5))
