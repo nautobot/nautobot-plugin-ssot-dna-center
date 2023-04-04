@@ -1,6 +1,7 @@
 """Jobs for DNA Center SSoT integration."""
 
 from django.urls import reverse
+from django.templatetags.static import static
 from diffsync import DiffSyncFlags
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar
@@ -35,6 +36,7 @@ class DnaCenterDataSource(DataSource, Job):
         data_source = "DNA Center"
         data_target = "Nautobot"
         description = "Sync information from DNA Center to Nautobot"
+        data_source_icon = static("nautobot_ssot_dna_center/dna_center_logo.png")
 
     @classmethod
     def config_information(cls):
@@ -50,6 +52,7 @@ class DnaCenterDataSource(DataSource, Job):
             DataMapping("Floors", None, "Locations", reverse("dcim:location_list")),
             DataMapping("Devices", None, "Devices", reverse("dcim:device_list")),
             DataMapping("Interfaces", None, "Interfaces", reverse("dcim:interface_list")),
+            DataMapping("IP Addresses", None, "IP Addresses", reverse("ipam:ipaddress_list")),
         )
 
     def load_source_adapter(self):
@@ -73,7 +76,9 @@ class DnaCenterDataSource(DataSource, Job):
                 verify=instance.verify,
             )
             client.connect()
-            self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client)
+            self.source_adapter = dna_center.DnaCenterAdapter(
+                job=self, sync=self.sync, client=client, tenant=instance.tenant
+            )
             self.source_adapter.load()
 
     def load_target_adapter(self):

@@ -3,18 +3,21 @@
 from collections import defaultdict
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.dcim.models import Location as OrmLocation
 from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.dcim.models import Region as OrmRegion
 from nautobot.dcim.models import Site as OrmSite
+from nautobot.ipam.models import IPAddress as OrmIPAddress
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
     NautobotBuilding,
     NautobotFloor,
     NautobotDevice,
     NautobotPort,
+    NautobotIPAddress,
 )
 
 
@@ -26,8 +29,9 @@ class NautobotAdapter(DiffSync):
     floor = NautobotFloor
     device = NautobotDevice
     port = NautobotPort
+    ipaddress = NautobotIPAddress
 
-    top_level = ["area", "device"]
+    top_level = ["area", "device", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -67,6 +71,7 @@ class NautobotAdapter(DiffSync):
                     area=site.region.name if site.region else "",
                     latitude=str(site.latitude).rstrip("0"),
                     longitude=str(site.longitude).rstrip("0"),
+                    tenant=site.tenant.name if site.tenant else None,
                     uuid=site.id,
                 )
                 self.add(new_building)
@@ -88,6 +93,7 @@ class NautobotAdapter(DiffSync):
                 new_floor = self.floor(
                     name=location.name,
                     building=location.site.name if location.site else "",
+                    tenant=location.tenant.name if location.tenant else None,
                     uuid=location.id,
                 )
                 self.add(new_floor)
@@ -121,6 +127,8 @@ class NautobotAdapter(DiffSync):
                 serial=dev.serial,
                 version=dev._custom_field_data["OS Version"] if dev._custom_field_data.get("OS Version") else "unknown",
                 platform=dev.platform.slug if dev.platform else "",
+                tenant=dev.tenant.name if dev.tenant else None,
+                management_addr=dev.primary_ip.host if dev.primary_ip else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
@@ -144,6 +152,38 @@ class NautobotAdapter(DiffSync):
             device = self.get(self.device, port.device.name)
             device.add_child(new_port)
 
+    def load_ipaddresses(self):
+        """Load IPAddress data from Nautobot into DiffSync models."""
+        for ipaddr in OrmIPAddress.objects.all():
+            new_ipaddr = self.ipaddress(
+                address=str(ipaddr.address),
+                interface=ipaddr.assigned_object.name,
+                device=ipaddr.assigned_object.device.name if ipaddr.assigned_object.device else "",
+                primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
+                tenant=ipaddr.tenant.name if ipaddr.tenant else None,
+                uuid=ipaddr.id,
+            )
+            self.add(new_ipaddr)
+
+    def sync_complete(self, source: DiffSync, *args, **kwargs):
+        """Clean up function for DiffSync sync.
+
+        Once the sync is complete, this function runs deleting any objects
+        from Nautobot that need to be deleted in a specific order.
+
+        Args:
+            source (DiffSync): DiffSync
+        """
+        for grouping in ["floors", "sites", "regions"]:
+            for nautobot_obj in self.objects_to_delete[grouping]:
+                try:
+                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    nautobot_obj.delete()
+                except ProtectedError:
+                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+            self.objects_to_delete[grouping] = []
+        return super().sync_complete(source, *args, **kwargs)
+
     def load(self):
         """Load data from Nautobot into DiffSync models."""
         self.load_regions()
@@ -151,3 +191,4 @@ class NautobotAdapter(DiffSync):
         self.load_floors()
         self.load_devices()
         self.load_ports()
+        self.load_ipaddresses()

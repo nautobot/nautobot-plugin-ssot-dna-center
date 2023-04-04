@@ -14,6 +14,7 @@ class DNACInstanceTest(TestCase):
                 "slug": "development",
                 "description": "Development Testing",
                 "port": 443,
+                "host_url": "https://dnac.testexample.com",
             }
         )
         self.assertTrue(form.is_valid())
@@ -21,11 +22,7 @@ class DNACInstanceTest(TestCase):
 
     def test_specifying_only_required_success(self):
         form = forms.DNACInstanceForm(
-            data={
-                "name": "Development",
-                "slug": "development",
-                "port": 443,
-            }
+            data={"name": "Development", "slug": "development", "port": 443, "host_url": "https://dnac.testexample.com"}
         )
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())

@@ -11,16 +11,8 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
 
     model = models.DNACInstance
     create_data = [
-        {
-            "name": "Test Model 1",
-            "slug": "test-model-1",
-            "port": 443,
-        },
-        {
-            "name": "Test Model 2",
-            "slug": "test-model-2",
-            "port": 443,
-        },
+        {"name": "Test Model 1", "slug": "test-model-1", "port": 443, "host_url": "https://dnac.testexample.com"},
+        {"name": "Test Model 2", "slug": "test-model-2", "port": 443, "host_url": "https://dnac.testexample.com"},
     ]
     bulk_update_data = {"description": "Test Bulk Update"}
     brief_fields = [
@@ -35,6 +27,7 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
         "name",
         "port",
         "slug",
+        "tenant",
         "url",
         "verify",
     ]
