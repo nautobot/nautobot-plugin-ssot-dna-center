@@ -192,13 +192,28 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     def test_load_floors_missing_location_type(self):
         """Test the load_floors method failing with missing Location Type."""
-        self.nb_adapter.job.log_warning = MagicMock()
-        Device.objects.all().delete()
-        Location.objects.all().delete()
-        LocationType.objects.all().delete()
         self.nb_adapter.load_floors()
         self.nb_adapter.job.log_warning.assert_called_with(
             message="Unable to find LocationType: Floor so can't find floor Locations to load. LocationType matching query does not exist."
+        )
+
+    @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmLocationType")
+    @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmLocation")
+    def test_load_floors_missing_building(self, mock_floors, mock_loc_type):
+        """Test the load_floors method failing with missing Building."""
+        mock_floor = MagicMock()
+        mock_floor.name = "HQ - Floor 1"
+        mock_floor.site = MagicMock()
+        mock_floor.site.name = "Missing"
+        mock_floor.tenant = None
+        mock_floor.id = uuid.uuid4()
+        mock_loc_type.objects.get.return_value = mock_loc_type
+        mock_floors.objects.filter.return_value = [mock_floor]
+        self.nb_adapter.get = MagicMock()
+        self.nb_adapter.get.side_effect = [ObjectNotFound()]
+        self.nb_adapter.load_floors()
+        self.nb_adapter.job.log_warning.assert_called_once_with(
+            message="Unable to load building Missing for floor HQ - Floor 1. "
         )
 
     def test_sync_complete(self):
