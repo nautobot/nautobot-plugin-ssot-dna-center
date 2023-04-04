@@ -16,6 +16,8 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         "slug": "test-1",
         "description": "Initial model",
         "port": 443,
+        "host_url": "https://dnac.testexample.com",
+        "verify": False,
     }
 
     @classmethod
@@ -35,10 +37,6 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
         pass
 
     def test_has_advanced_tab(self):
-        pass
-
-    @skip("Not Implemented")
-    def test_queryset_to_csv(self):
         pass
 
     @skip("Not Implemented")

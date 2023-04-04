@@ -24,7 +24,7 @@ class Building(DiffSyncModel):
 
     _modelname = "building"
     _identifiers = ("name", "area")
-    _attributes = ("address", "latitude", "longitude")
+    _attributes = ("address", "latitude", "longitude", "tenant")
     _children = {"floor": "floors"}
 
     name: str
@@ -32,6 +32,7 @@ class Building(DiffSyncModel):
     area: str
     latitude: Optional[str]
     longitude: Optional[str]
+    tenant: Optional[str]
     floors: Optional[List["Floor"]] = list()
 
     uuid: Optional[UUID]
@@ -42,11 +43,12 @@ class Floor(DiffSyncModel):
 
     _modelname = "floor"
     _identifiers = ("name", "building")
-    _attributes = ()
+    _attributes = ("tenant",)
     _children = {}
 
     name: str
     building: str
+    tenant: Optional[str]
 
     uuid: Optional[UUID]
 
@@ -67,6 +69,7 @@ class Device(DiffSyncModel):
         "serial",
         "version",
         "platform",
+        "tenant",
     )
     _children = {"port": "ports"}
 
@@ -81,7 +84,9 @@ class Device(DiffSyncModel):
     serial: Optional[str]
     version: Optional[str]
     platform: str
+    tenant: Optional[str]
     ports: Optional[List["Port"]] = list()
+    management_addr: Optional[str]
 
     uuid: Optional[UUID]
 
@@ -105,3 +110,25 @@ class Port(DiffSyncModel):
     enabled: bool
 
     uuid: Optional[UUID]
+
+
+class IPAddress(DiffSyncModel):
+    """DiffSync model for DNA Center IP addresses."""
+
+    _modelname = "ipaddress"
+    _identifiers = ("address", "device", "interface")
+    _attributes = ("primary", "tenant")
+    _children = {}
+
+    address: str
+    interface: str
+    device: str
+    primary: bool
+    tenant: Optional[str]
+
+    uuid: Optional[UUID]
+
+
+Area.update_forward_refs()
+Building.update_forward_refs()
+Device.update_forward_refs()
