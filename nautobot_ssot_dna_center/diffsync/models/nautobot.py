@@ -178,7 +178,7 @@ class NautobotDevice(base.Device):
         if attrs.get("version"):
             _cf_dict = {
                 "name": "OS Version",
-                "slug": "os_version",
+                "slug": "os-version",
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": "OS Version",
             }
