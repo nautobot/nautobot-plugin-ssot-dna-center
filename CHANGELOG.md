@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.6.0 (2023-04-06)
+### Feature
+* ✨ Add CustomField to all imported devices stating SoR and last sync date/time. ([`1896b9c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1896b9c198b9d2ebd839bc73392c2c3089d5ee56))
+
+### Fix
+* 🐛 Correct CustomField name to match slug. This fixes the warning in Nautobot. ([`1dbe114`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1dbe1143b1660d930673ac4737c49f8561d73f86))
+* Add handling in case a Site has no Region. ([`ce4dd97`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/ce4dd977a376bd061a81c6d5790fe1ce450d5af6))
+
 ## v0.5.0 (2023-04-04)
 ### Feature
 * ✨ Add tenant to supported models ([`b1fa72c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b1fa72c7f832d39d77b6f6a16a6ee05d96ceb080))
