@@ -304,4 +304,4 @@ class TestNautobotDevice(TransactionTestCase):
         self.assertTrue(new_dev.location)
         self.assertEqual(new_dev.location.name, self.attrs["floor"])
         self.assertEqual(new_dev.tenant.name, self.attrs["tenant"])
-        self.assertTrue(new_dev.custom_field_data["OS Version"], self.attrs["version"])
+        self.assertTrue(new_dev.custom_field_data["os_version"], self.attrs["version"])
