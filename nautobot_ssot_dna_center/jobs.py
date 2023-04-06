@@ -27,7 +27,9 @@ class DnaCenterDataSource(DataSource, Job):
     def __init__(self):
         """Initialize DNA Center Data Source."""
         super().__init__()
-        self.diffsync_flags = self.diffsync_flags | DiffSyncFlags.CONTINUE_ON_FAILURE
+        self.diffsync_flags = (
+            self.diffsync_flags | DiffSyncFlags.CONTINUE_ON_FAILURE  # pylint: disable=unsupported-binary-operation
+        )
 
     class Meta:  # pylint: disable=too-few-public-methods
         """Meta data for DNA Center."""
