@@ -63,7 +63,7 @@ class NautobotAdapter(DiffSync):
         """Load Site data from Nautobot into DiffSync models."""
         for site in OrmSite.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             try:
-                self.get(self.building, {"name": site.name, "area": site.region.name})
+                self.get(self.building, {"name": site.name, "area": site.region.name if site.region else None})
             except ObjectNotFound:
                 new_building = self.building(
                     name=site.name,
