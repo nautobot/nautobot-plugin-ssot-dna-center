@@ -1,5 +1,4 @@
 """Unit tests for views."""
-from unittest import skip
 from nautobot.utilities.testing import ViewTestCases
 from nautobot_ssot_dna_center import models
 from nautobot_ssot_dna_center.tests import fixtures
@@ -39,6 +38,5 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
     def test_has_advanced_tab(self):
         pass
 
-    @skip("Not Implemented")
     def test_get_object_notes(self):
         pass
