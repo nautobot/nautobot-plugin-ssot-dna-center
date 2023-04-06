@@ -47,7 +47,7 @@ class NautobotAdapter(DiffSync):
 
     def load_regions(self):
         """Load Region data from Nautobt into DiffSync models."""
-        for region in OrmRegion.objects.all():
+        for region in OrmRegion.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             try:
                 self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
                 self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
@@ -61,7 +61,7 @@ class NautobotAdapter(DiffSync):
 
     def load_sites(self):
         """Load Site data from Nautobot into DiffSync models."""
-        for site in OrmSite.objects.all():
+        for site in OrmSite.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             try:
                 self.get(self.building, {"name": site.name, "area": site.region.name})
             except ObjectNotFound:
@@ -88,7 +88,9 @@ class NautobotAdapter(DiffSync):
         """Load LocationType floors from Nautobot into DiffSync models."""
         try:
             loc_type = OrmLocationType.objects.get(name="Floor")
-            locations = OrmLocation.objects.filter(location_type=loc_type)
+            locations = OrmLocation.objects.filter(
+                _custom_field_data__system_of_record="DNA Center", location_type=loc_type
+            )
             for location in locations:
                 new_floor = self.floor(
                     name=location.name,
@@ -114,7 +116,7 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Device data from Nautobot into DiffSync models."""
-        for dev in OrmDevice.objects.all():
+        for dev in OrmDevice.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             new_dev = self.device(
                 name=dev.name,
                 status=dev.status.name,
@@ -135,7 +137,7 @@ class NautobotAdapter(DiffSync):
 
     def load_ports(self):
         """Load Interface data from Nautobot into DiffSync models."""
-        for port in OrmInterface.objects.all():
+        for port in OrmInterface.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             new_port = self.port(
                 name=port.name,
                 device=port.device.name,
@@ -154,7 +156,7 @@ class NautobotAdapter(DiffSync):
 
     def load_ipaddresses(self):
         """Load IPAddress data from Nautobot into DiffSync models."""
-        for ipaddr in OrmIPAddress.objects.all():
+        for ipaddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             new_ipaddr = self.ipaddress(
                 address=str(ipaddr.address),
                 interface=ipaddr.assigned_object.name,
@@ -166,14 +168,17 @@ class NautobotAdapter(DiffSync):
             self.add(new_ipaddr)
 
     def sync_complete(self, source: DiffSync, *args, **kwargs):
-        """Clean up function for DiffSync sync.
+        """Label and clean up function for DiffSync sync.
 
-        Once the sync is complete, this function runs deleting any objects
-        from Nautobot that need to be deleted in a specific order.
+        Once the sync is complete, this function labels all imported objects and then
+        deletes any objects from Nautobot that need to be deleted in a specific order.
 
         Args:
             source (DiffSync): DiffSync
         """
+        self.job.log_info(message="Sync is complete. Labelling imported objects from DNA Center.")
+        source.label_imported_objects(target=self)
+
         for grouping in ["floors", "sites", "regions"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:

@@ -38,8 +38,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     def setUp(self):  # pylint: disable=too-many-locals
         """Per-test-case data setup."""
-        self.status_active = Status.objects.create(name="Active", slug="active")
-        self.status_active.validated_save()
+        super().setUp()
+        self.status_active = Status.objects.get(name="Active")
 
         job = DnaCenterDataSource()
         job.job_result = JobResult.objects.create(
@@ -50,12 +50,18 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.job.log_info = MagicMock()
         self.nb_adapter.job.log_warning = MagicMock()
 
-    def build_nautobot_objects(self):
+    def build_nautobot_objects(self):  # pylint: disable=too-many-locals
         """Build out Nautobot objects to test loading."""
         global_region = Region.objects.create(name="Global", slug="global")
+        global_region._custom_field_data["system_of_record"] = "DNA Center"
+        global_region.validated_save()
         self.ny_region = Region.objects.create(name="NY", parent=global_region, slug="ny")
+        self.ny_region._custom_field_data["system_of_record"] = "DNA Center"
+        self.ny_region.validated_save()
 
         self.hq_site = Site.objects.create(region=self.ny_region, name="HQ", slug="hq", status=self.status_active)
+        self.hq_site._custom_field_data["system_of_record"] = "DNA Center"
+        self.hq_site.validated_save()
 
         self.loc_type = LocationType.objects.create(name="Floor", slug="floor")
         self.loc_type.content_types.add(ContentType.objects.get_for_model(Device))
@@ -66,6 +72,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             location_type=self.loc_type,
             status=self.status_active,
         )
+        self.floor_loc._custom_field_data["system_of_record"] = "DNA Center"
+        self.floor_loc.validated_save()
 
         cisco_manu = Manufacturer.objects.create(name="Cisco", slug="cisco")
         csr_devicetype = DeviceType.objects.create(model="Cisco Catalyst 9300 Switch", manufacturer=cisco_manu)
@@ -81,6 +89,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_role=leaf_role,
             platform=ios_platform,
         )
+        leaf1_dev._custom_field_data["system_of_record"] = "DNA Center"
         leaf2_dev = Device.objects.create(
             name="leaf2.abc.inc",
             site=self.hq_site,
@@ -90,6 +99,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_role=leaf_role,
             platform=ios_platform,
         )
+        leaf2_dev._custom_field_data["system_of_record"] = "DNA Center"
         spine1_dev = Device.objects.create(
             name="spine1.abc.in",
             site=self.hq_site,
@@ -99,12 +109,24 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_role=spine_role,
             platform=ios_platform,
         )
+        spine1_dev._custom_field_data["system_of_record"] = "DNA Center"
+        spine1_dev.validated_save()
 
-        leaf1_mgmt = Interface.objects.create(device=leaf1_dev, name="Management", status=self.status_active, mtu=1500)
-        leaf2_mgmt = Interface.objects.create(device=leaf2_dev, name="Management", status=self.status_active, mtu=1500)
-        spine1_mgmt = Interface.objects.create(
-            device=spine1_dev, name="Management", status=self.status_active, mtu=1500
+        leaf1_mgmt = Interface.objects.create(
+            device=leaf1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
         )
+        leaf1_mgmt._custom_field_data["system_of_record"] = "DNA Center"
+        leaf1_mgmt.validated_save()
+        leaf2_mgmt = Interface.objects.create(
+            device=leaf2_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+        )
+        leaf2_mgmt._custom_field_data["system_of_record"] = "DNA Center"
+        leaf2_mgmt.validated_save()
+        spine1_mgmt = Interface.objects.create(
+            device=spine1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+        )
+        spine1_mgmt._custom_field_data["system_of_record"] = "DNA Center"
+        spine1_mgmt.validated_save()
 
         leaf1_ip = IPAddress.objects.create(
             address="10.10.10.1/24",
@@ -112,8 +134,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             assigned_object_id=leaf1_mgmt.id,
         )
+        leaf1_ip._custom_field_data["system_of_record"] = "DNA Center"
+        leaf1_ip.validated_save()
         leaf1_mgmt.device.primary_ip4 = leaf1_ip
-        leaf1_mgmt.device.save()
+        leaf1_mgmt.device.validated_save()
 
         leaf2_ip = IPAddress.objects.create(
             address="10.10.11.1/24",
@@ -121,15 +145,19 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             assigned_object_id=leaf2_mgmt.id,
         )
+        leaf2_ip._custom_field_data["system_of_record"] = "DNA Center"
+        leaf2_ip.validated_save()
         leaf2_mgmt.device.primary_ip4 = leaf2_ip
-        leaf2_mgmt.device.save()
+        leaf2_mgmt.device.validated_save()
 
-        IPAddress.objects.create(
+        spine1_ip = IPAddress.objects.create(
             address="10.10.12.1/24",
             status=self.status_active,
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             assigned_object_id=spine1_mgmt.id,
         )
+        spine1_ip._custom_field_data["system_of_record"] = "DNA Center"
+        spine1_ip.validated_save()
 
     def test_data_loading(self):
         """Test the load() function."""
@@ -184,7 +212,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         mock_site.longitude = -71.345678
         mock_site.tenant = None
         mock_site.id = uuid.uuid4()
-        mock_sites.objects.all.return_value = [mock_site]
+        mock_sites.objects.filter.return_value = [mock_site]
         self.nb_adapter.get = MagicMock()
         self.nb_adapter.get.side_effect = [ObjectNotFound(), ObjectNotFound()]
         self.nb_adapter.load_sites()
