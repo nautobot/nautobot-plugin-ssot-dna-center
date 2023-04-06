@@ -177,14 +177,14 @@ class NautobotDevice(base.Device):
             new_device.tenant = Tenant.objects.get(name=attrs["tenant"])
         if attrs.get("version"):
             _cf_dict = {
-                "name": "OS Version",
-                "slug": "os-version",
+                "name": "os_version",
+                "slug": "os_version",
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": "OS Version",
             }
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
-            new_device.custom_field_data.update({"OS Version": attrs["version"]})
+            new_device.custom_field_data.update({"os_version": attrs["version"]})
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -224,14 +224,14 @@ class NautobotDevice(base.Device):
                 device.tenant = None
         if "version" in attrs:
             _cf_dict = {
-                "name": "OS Version",
+                "name": "os_version",
                 "slug": "os_version",
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": "OS Version",
             }
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
-            device.custom_field_data.update({"OS Version": attrs["version"]})
+            device.custom_field_data.update({"os_version": attrs["version"]})
         device.validated_save()
         return super().update(attrs)
 
