@@ -7,7 +7,6 @@ from nautobot.dcim.models import (
     DeviceType,
     Interface,
     Manufacturer,
-    Platform,
     Site,
     Rack,
     RackGroup,
@@ -156,7 +155,7 @@ class NautobotDevice(base.Device):
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
-        platform, _ = Platform.objects.get_or_create(name=attrs["platform"])
+        platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         status = Status.objects.get(name=attrs["status"])
         new_device = Device(
             name=ids["name"],
@@ -165,7 +164,7 @@ class NautobotDevice(base.Device):
             site=site,
             device_type=device_type,
             serial=attrs["serial"],
-            platform=platform,
+            platform_id=platform.id,
         )
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
@@ -216,7 +215,9 @@ class NautobotDevice(base.Device):
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "platform" in attrs:
-            device.platform = Platform.objects.get_or_create(name=attrs["platform"])
+            vendor = attrs["vendor"] if attrs.get("vendor") else self.vendor
+            manufacturer = Manufacturer.objects.get(name=vendor)
+            device.platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 device.tenant = Tenant.objects.get(name=attrs["tenant"])
