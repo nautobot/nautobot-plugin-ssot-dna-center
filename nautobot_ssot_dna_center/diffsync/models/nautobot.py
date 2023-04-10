@@ -7,7 +7,6 @@ from nautobot.dcim.models import (
     DeviceType,
     Interface,
     Manufacturer,
-    Platform,
     Site,
     Rack,
     RackGroup,
@@ -20,6 +19,14 @@ from nautobot.extras.models import CustomField, Status
 from nautobot.ipam.models import IPAddress
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
+from nautobot_ssot_dna_center.utils.nautobot import add_software_lcm, assign_version_to_device, verify_platform
+
+try:
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    LIFECYCLE_MGMT = False
 
 
 class NautobotArea(base.Area):
@@ -156,7 +163,7 @@ class NautobotDevice(base.Device):
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
-        platform, _ = Platform.objects.get_or_create(name=attrs["platform"])
+        platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         status = Status.objects.get(name=attrs["status"])
         new_device = Device(
             name=ids["name"],
@@ -165,7 +172,7 @@ class NautobotDevice(base.Device):
             site=site,
             device_type=device_type,
             serial=attrs["serial"],
-            platform=platform,
+            platform_id=platform.id,
         )
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
@@ -185,6 +192,9 @@ class NautobotDevice(base.Device):
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
             new_device.custom_field_data.update({"os_version": attrs["version"]})
+            if LIFECYCLE_MGMT:
+                lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.slug, version=attrs["version"])
+                assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -216,7 +226,9 @@ class NautobotDevice(base.Device):
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "platform" in attrs:
-            device.platform = Platform.objects.get_or_create(name=attrs["platform"])
+            vendor = attrs["vendor"] if attrs.get("vendor") else self.vendor
+            manufacturer = Manufacturer.objects.get(name=vendor)
+            device.platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 device.tenant = Tenant.objects.get(name=attrs["tenant"])
@@ -232,6 +244,10 @@ class NautobotDevice(base.Device):
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
             device.custom_field_data.update({"os_version": attrs["version"]})
+        if LIFECYCLE_MGMT:
+            platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
+            lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
+            assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.validated_save()
         return super().update(attrs)
 
