@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.7.0 (2023-04-10)
+### Feature
+* ✨ Add support for Device Lifecycle App for software version tracking. ([`65b4551`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/65b4551f74d4449f706ec17b939df2abe503d145))
+* ✨ Create verify_platform function to get/create Platform to ensure standardized. ([`437770a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/437770a2b53391cb951b0de0431c6ba8fba8306d))
+
+### Fix
+* 🐛 Remove metadata for py3.7 as not needed anymore ([`41d19f8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/41d19f8d379912086062f49f9bde28fdb32816a8))
+
 ## v0.6.0 (2023-04-06)
 ### Feature
 * ✨ Add CustomField to all imported devices stating SoR and last sync date/time. ([`1896b9c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1896b9c198b9d2ebd839bc73392c2c3089d5ee56))
