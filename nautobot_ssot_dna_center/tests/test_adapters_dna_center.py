@@ -131,6 +131,17 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             message="Device found in DNAC without hostname so will be skipped. Ref device ID: 1234"
         )
 
+    def test_load_devices_missing_building(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing building."""
+        self.dna_center_client.get_devices.return_value = [
+            {"hostname": "test-device", "softwareType": None, "type": "Meraki", "id": "1234"}
+        ]
+        self.dna_center_client.get_device_detail.return_value = {}
+        self.dna_center.load_devices()
+        self.dna_center.job.log_warning.assert_called_once_with(
+            message="Unable to find Site for test-device so skipping."
+        )
+
     def test_load_ports(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""
         expected_ports = []
