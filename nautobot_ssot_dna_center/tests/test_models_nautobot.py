@@ -282,6 +282,7 @@ class TestNautobotDevice(TransactionTestCase):
             "version": "16.12.3",
         }
 
+    @patch("nautobot_ssot_dna_center.diffsync.models.nautobot.LIFECYCLE_MGMT", True)
     def test_create(self):
         """Test the NautobotDevice create() method creates a Device."""
         hq_site = Site.objects.create(name="HQ", slug="hq", status=self.status_active)
@@ -289,7 +290,7 @@ class TestNautobotDevice(TransactionTestCase):
         floors.content_types.add(ContentType.objects.get_for_model(Device))
 
         NautobotDevice.create(self.diffsync, self.ids, self.attrs)
-        self.diffsync.job.log_info.assert_called_once_with(message="Creating Device core-router.testexample.com.")
+        self.diffsync.job.log_info.assert_called_with(message="Creating Version 16.12.3 for cisco.ios.ios.")
         new_dev = Device.objects.get(name=self.ids["name"])
         self.assertEqual(new_dev.site, hq_site)
         self.assertEqual(new_dev.device_role, DeviceRole.objects.get(slug=self.attrs["role"]))

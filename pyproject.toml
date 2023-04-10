@@ -7,7 +7,7 @@ license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/nautobot/nautobot-plugin-ssot-dna-center"
 repository = "https://github.com/nautobot/nautobot-plugin-ssot-dna-center"
-keywords = ["nautobot", "nautobot-plugin"]
+keywords = ["nautobot", "nautobot-plugin", "ssot", "cisco", "dna center"]
 include = [
     "LICENSE",
     "README.md",
@@ -18,12 +18,11 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-# Required for Python 3.7 for now. See: https://stackoverflow.com/a/73932581/194311
-importlib-metadata = "4.13.0"
 # Used for local development
 nautobot = { version = "^1.5.6", optional = true }
 nautobot-ssot = "^1.1.0"
 dnacentersdk = "^2.5.6"
+nautobot-device-lifecycle-mgmt = {version = "^1.0.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 bandit = "*"
@@ -48,6 +47,7 @@ parameterized = "^0.8.1"
 
 [tool.poetry.extras]
 nautobot = ["nautobot"]
+nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 
 [tool.black]
 line-length = 120
