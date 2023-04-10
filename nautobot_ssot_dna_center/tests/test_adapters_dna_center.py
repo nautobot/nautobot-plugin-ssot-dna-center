@@ -51,6 +51,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client, tenant=None)
+        self.dna_center.job.log_warning = MagicMock()
         self.dna_center.load()
 
     def test_build_dnac_location_map(self):
@@ -122,6 +123,25 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
 
+    def test_load_devices_missing_hostname(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing hostname."""
+        self.dna_center_client.get_devices.return_value = [{"hostname": "", "id": "1234"}]
+        self.dna_center.load_devices()
+        self.dna_center.job.log_warning.assert_called_once_with(
+            message="Device found in DNAC without hostname so will be skipped. Ref device ID: 1234"
+        )
+
+    def test_load_devices_missing_building(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing building."""
+        self.dna_center_client.get_devices.return_value = [
+            {"hostname": "test-device", "softwareType": None, "type": "Meraki", "id": "1234"}
+        ]
+        self.dna_center_client.get_device_detail.return_value = {}
+        self.dna_center.load_devices()
+        self.dna_center.job.log_warning.assert_called_once_with(
+            message="Unable to find Site for test-device so skipping."
+        )
+
     def test_load_ports(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""
         expected_ports = []
@@ -135,7 +155,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def test_load_ports_missing_device(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function with missing device."""
         self.dna_center.get = MagicMock(side_effect=ObjectNotFound("Device not found"))
-        self.dna_center.job.log_warning = MagicMock()
         self.dna_center.load_ports(device_id="1234567890", device_name="missing_device")
         self.dna_center.job.log_warning.assert_called_once_with(
             message="Unable to find Device missing_device to assign Ports to so skipping. Device not found"

@@ -1,6 +1,13 @@
 """Nautobot Adapter for DNA Center SSoT plugin."""
+try:
+    from nautobot_device_lifecycle_mgmt.models import SoftwareLCM  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    LIFECYCLE_MGMT = False
 
 from collections import defaultdict
+
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
@@ -10,14 +17,17 @@ from nautobot.dcim.models import Location as OrmLocation
 from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.dcim.models import Region as OrmRegion
 from nautobot.dcim.models import Site as OrmSite
+from nautobot.extras.models import Relationship as OrmRelationship
+from nautobot.extras.models import RelationshipAssociation as OrmRelationshipAssociation
 from nautobot.ipam.models import IPAddress as OrmIPAddress
+
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
     NautobotBuilding,
-    NautobotFloor,
     NautobotDevice,
-    NautobotPort,
+    NautobotFloor,
     NautobotIPAddress,
+    NautobotPort,
 )
 
 
@@ -117,6 +127,15 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Load Device data from Nautobot into DiffSync models."""
         for dev in OrmDevice.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+            version = dev.custom_field_data.get("os_version")
+            if LIFECYCLE_MGMT:
+                try:
+                    soft_lcm = OrmRelationship.objects.get(slug="device_soft")
+                    version = OrmRelationshipAssociation.objects.get(
+                        relationship=soft_lcm, destination_id=dev.id
+                    ).source.version
+                except OrmRelationshipAssociation.DoesNotExist:
+                    pass
             new_dev = self.device(
                 name=dev.name,
                 status=dev.status.name,
@@ -127,7 +146,7 @@ class NautobotAdapter(DiffSync):
                 site=dev.site.name,
                 floor=dev.location.name if dev.location else "",
                 serial=dev.serial,
-                version=dev._custom_field_data["os_version"] if dev._custom_field_data.get("os_version") else "unknown",
+                version=version,
                 platform=dev.platform.slug if dev.platform else "",
                 tenant=dev.tenant.name if dev.tenant else None,
                 management_addr=dev.primary_ip.host if dev.primary_ip else "",
