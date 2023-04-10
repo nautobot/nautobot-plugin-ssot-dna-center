@@ -1,10 +1,5 @@
 """Plugin declaration for nautobot_ssot_dna_center."""
-# Metadata is inherited from Nautobot. If not including Nautobot in the environment, this should be added
-try:
-    from importlib import metadata
-except ImportError:
-    # Python version < 3.8
-    import importlib_metadata as metadata
+from importlib import metadata
 from nautobot.core.signals import nautobot_database_ready
 from nautobot.extras.plugins import PluginConfig
 from nautobot_ssot_dna_center.signals import nautobot_database_ready_callback
