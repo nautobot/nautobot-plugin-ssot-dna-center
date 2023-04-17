@@ -43,16 +43,17 @@ class DnaCenterClient:
         Returns:
             list: List of Locations (Sites) from DNAC.
         """
-        locations = []
+        locations, loc_data, loc_names = [], [], []
         try:
             total_num_sites = self.conn.sites.get_site_count()["response"]
             offset = 1
-            while len(locations) < total_num_sites:
-                locations.extend(self.conn.sites.get_site(offset=offset)["response"])
-                offset = len(locations) + 1
-            for index, item in enumerate(locations):
-                if index > 1 and item["name"] == "Global":
-                    locations.pop(index)
+            while len(loc_data) < total_num_sites:
+                loc_data.extend(self.conn.sites.get_site(offset=offset)["response"])
+                offset = len(loc_data)
+            for _, item in enumerate(loc_data):
+                if item["siteNameHierarchy"] not in loc_names:
+                    loc_names.append(item["siteNameHierarchy"])
+                    locations.append(item)
         except dnacentersdkException as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
         return locations
