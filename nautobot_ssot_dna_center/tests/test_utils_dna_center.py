@@ -30,6 +30,9 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.password = "testpassword"  # nosec B105
         self.verify = False
         self.dnac = DnaCenterClient(self.url, self.username, self.password, verify=self.verify)
+        self.dnac.conn = MagicMock()
+        self.dnac.conn.sites.get_site_count.return_value = {"response": 4}
+        self.dnac.conn.devices.get_device_count.return_value = {"response": 3}
 
         self.mock_response = create_autospec(Response)
         self.mock_response.message = MagicMock()
@@ -50,6 +53,7 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     @patch("nautobot_ssot_dna_center.utils.dna_center.api.DNACenterAPI")
     def test_connect_error(self, mock_api):
+        self.dnac.conn = None
         mock_api.side_effect = dnacentersdkException(self.mock_response)
         with self.assertLogs(level="ERROR") as log:
             self.dnac.connect()
@@ -61,14 +65,12 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_locations(self):
         """Test the get_locations method in DnaCenterClient."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.sites.get_site.return_value = RECV_LOCATION_FIXTURE
         actual = self.dnac.get_locations()
         self.assertEqual(actual, LOCATION_FIXTURE)
 
     def test_get_locations_catches_api_error(self):
         """Test the get_locations method in DnaCenterClient catches dnacentersdkException."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.sites.get_site.side_effect = dnacentersdkException(self.mock_response)
         with self.assertLogs(level="ERROR") as log:
             self.dnac.get_locations()
@@ -109,14 +111,12 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_devices(self):
         """Test the get_devices method in DnaCenterClient."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_list.return_value = RECV_DEVICE_FIXTURE
         actual = self.dnac.get_devices()
         self.assertEqual(actual, DEVICE_FIXTURE)
 
     def test_get_devices_catches_api_error(self):
         """Test the get_devices method in DnaCenterClient catches dnacentersdkException."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_list.side_effect = dnacentersdkException(self.mock_response)
         with self.assertLogs(level="ERROR") as log:
             self.dnac.get_devices()
@@ -124,14 +124,12 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_device_detail(self):
         """Test the get_device_detail method in DnaCenterClient."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_detail.return_value = RECV_DEVICE_DETAIL_FIXTURE
         actual = self.dnac.get_device_detail(dev_id="1234567890")
         self.assertEqual(actual, DEVICE_DETAIL_FIXTURE)
 
     def test_get_device_detail_catches_api_error(self):
         """Test the get_device_detail method in DnaCenterClient catches dnacentersdkException."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_device_detail.side_effect = dnacentersdkException(self.mock_response)
         with self.assertLogs(level="ERROR") as log:
             self.dnac.get_device_detail(dev_id="1234567890")
@@ -164,14 +162,12 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
 
     def test_get_port_info(self):
         """Test the get_port_info method in DnaCenterClient."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_interface_info_by_id.return_value = RECV_PORT_FIXTURE
         actual = self.dnac.get_port_info(device_id="1234567890")
         self.assertEqual(actual, PORT_FIXTURE)
 
     def test_get_port_info_catches_api_error(self):
         """Test the get_port_info method in DnaCenterClient catches dnacentersdkException."""
-        self.dnac.conn = MagicMock()
         self.dnac.conn.devices.get_interface_info_by_id.side_effect = dnacentersdkException(self.mock_response)
         with self.assertLogs(level="ERROR") as log:
             self.dnac.get_port_info(device_id="1234567890")
