@@ -99,8 +99,8 @@ class DnaCenterClient:
         dev_list = []
         try:
             total_num_devs = self.conn.devices.get_device_count()["response"]
-            while len(dev_list) <= total_num_devs:
-                dev_list.extend(self.conn.devices.get_device_list(offset=len(dev_list))["response"])
+            while len(dev_list) < total_num_devs:
+                dev_list.extend(self.conn.devices.get_device_list(offset=len(dev_list) + 1)["response"])
         except dnacentersdkException as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
