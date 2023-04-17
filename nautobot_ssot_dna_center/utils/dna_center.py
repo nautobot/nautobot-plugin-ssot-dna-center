@@ -45,7 +45,14 @@ class DnaCenterClient:
         """
         locations = []
         try:
-            locations = self.conn.sites.get_site()["response"]
+            total_num_sites = self.conn.sites.get_site_count()["response"]
+            offset = 1
+            while len(locations) < total_num_sites:
+                locations.extend(self.conn.sites.get_site(offset=offset)["response"])
+                offset = len(locations) + 1
+            for index, item in enumerate(locations):
+                if index > 1 and item["name"] == "Global":
+                    locations.pop(index)
         except dnacentersdkException as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
         return locations
@@ -88,9 +95,11 @@ class DnaCenterClient:
 
     def get_devices(self):
         """Retrieve all Device data from DNA Center."""
-        dev_list = {}
+        dev_list = []
         try:
-            dev_list = self.conn.devices.get_device_list()["response"]
+            total_num_devs = self.conn.devices.get_device_count()["response"]
+            while len(dev_list) <= total_num_devs:
+                dev_list.extend(self.conn.devices.get_device_list(offset=len(dev_list))["response"])
         except dnacentersdkException as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
