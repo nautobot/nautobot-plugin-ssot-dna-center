@@ -3,11 +3,12 @@
 import uuid
 from unittest.mock import MagicMock
 
+from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
-from diffsync.exceptions import ObjectNotFound
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
+from nautobot_ssot_dna_center.diffsync.models.dna_center import DnaCenterDevice
 from nautobot_ssot_dna_center.tests.fixtures import (
     LOCATION_FIXTURE,
     DEVICE_FIXTURE,
@@ -153,10 +154,26 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         actual_ports = [port.get_unique_id() for port in self.dna_center.get_all("port")]
         self.assertEqual(expected_ports, actual_ports)
 
-    def test_load_ports_missing_device(self):
-        """Test Nautobot SSoT for Cisco DNA Center load_ports() function with missing device."""
-        self.dna_center.get = MagicMock(side_effect=ObjectNotFound("Device not found"))
-        self.dna_center.load_ports(device_id="1234567890", device_name="missing_device")
-        self.dna_center.job.log_warning.assert_called_once_with(
-            message="Unable to find Device missing_device to assign Ports to so skipping. Device not found"
+    def test_load_ports_validation_error(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_ports() function throwing ValidationError."""
+        self.dna_center.add = MagicMock(side_effect=ValidationError(message="leaf3.abc.inc not found"))
+        mock_device = DnaCenterDevice(
+            name="leaf3.abc.inc",
+            status="Active",
+            role="CORE",
+            vendor="Cisco",
+            model="CSR1000v",
+            area="NY",
+            site="Building1",
+            floor="Floor 1",
+            serial="FQ234567",
+            version="16.2.3",
+            platform="cisco_ios",
+            tenant="IT",
+            management_addr="10.10.0.1",
+            uuid=None,
+        )
+        self.dna_center.load_ports(device_id="1234567890", dev=mock_device)
+        self.dna_center.job.log_warning.assert_called_with(
+            message="Unable to load port Vlan848 for leaf3.abc.inc. ['leaf3.abc.inc not found']"
         )
