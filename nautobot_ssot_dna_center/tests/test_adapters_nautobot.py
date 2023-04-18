@@ -241,10 +241,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         self.assertEqual(
             [
-                "Management__",
-                "Management__leaf1.abc.inc",
-                "Management__leaf2.abc.inc",
-                "Management__spine1.abc.in",
+                "Management____AA:BB:CC:DD:EE:F4",
+                "Management__leaf1.abc.inc__AA:BB:CC:DD:EE:F1",
+                "Management__leaf2.abc.inc__AA:BB:CC:DD:EE:F2",
+                "Management__spine1.abc.in__AA:BB:CC:DD:EE:F3",
             ],
             sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
         )

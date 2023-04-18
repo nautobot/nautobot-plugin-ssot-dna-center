@@ -274,7 +274,7 @@ class NautobotPort(base.Port):
             enabled=attrs["enabled"],
             type=attrs["port_type"],
             mode=attrs["port_mode"],
-            mac_address=attrs["mac_addr"],
+            mac_address=ids["mac_addr"],
             mtu=attrs["mtu"],
             status=Status.objects.get(slug=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
@@ -292,8 +292,6 @@ class NautobotPort(base.Port):
             port.type = attrs["port_type"]
         if "port_mode" in attrs:
             port.mode = attrs["port_mode"]
-        if "mac_addr" in attrs:
-            port.mac_address = attrs["mac_addr"]
         if "mtu" in attrs:
             port.mtu = attrs["mtu"]
         if "status" in attrs:
