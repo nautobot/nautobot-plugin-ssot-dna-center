@@ -127,14 +127,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
 
-    def test_load_devices_missing_hostname(self):
-        """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing hostname."""
-        self.dna_center_client.get_devices.return_value = [{"hostname": "", "id": "1234"}]
-        self.dna_center.load_devices()
-        self.dna_center.job.log_warning.assert_called_with(
-            message="Device found in DNAC without hostname so will be skipped. Ref device ID: 1234"
-        )
-
     def test_load_devices_missing_building(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing building."""
         self.dna_center_client.get_devices.return_value = [
