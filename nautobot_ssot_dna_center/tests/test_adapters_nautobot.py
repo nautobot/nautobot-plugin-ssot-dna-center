@@ -115,21 +115,60 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         spine1_dev.custom_field_data["system_of_record"] = "DNA Center"
         spine1_dev.validated_save()
 
+        meraki_ap = Device.objects.create(
+            name="",
+            site=self.hq_site,
+            location=self.floor_loc,
+            status=self.status_active,
+            device_type=DeviceType.objects.create(model="MR42", manufacturer=cisco_manu),
+            device_role=DeviceRole.objects.create(name="UNKNOWN", slug="unknown"),
+            platform=Platform.objects.create(name="meraki", slug="meraki", napalm_driver="meraki"),
+            serial="R3JE-OYG4-RCDE",
+        )
+        meraki_ap.custom_field_data["system_of_record"] = "DNA Center"
+        meraki_ap.validated_save()
+
         leaf1_mgmt = Interface.objects.create(
-            device=leaf1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=leaf1_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f1",
         )
         leaf1_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         leaf1_mgmt.validated_save()
         leaf2_mgmt = Interface.objects.create(
-            device=leaf2_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=leaf2_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f2",
         )
         leaf2_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         leaf2_mgmt.validated_save()
         spine1_mgmt = Interface.objects.create(
-            device=spine1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=spine1_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f3",
         )
         spine1_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         spine1_mgmt.validated_save()
+
+        ap_mgmt = Interface.objects.create(
+            device=meraki_ap,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f4",
+        )
+        ap_mgmt.custom_field_data["system_of_record"] = "DNA Center"
+        ap_mgmt.validated_save()
 
         leaf1_ip = IPAddress.objects.create(
             address="10.10.10.1/24",
@@ -164,6 +203,17 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         spine1_mgmt.device.primary_ip4 = spine1_ip
         spine1_mgmt.device.validated_save()
 
+        ap_ip = IPAddress.objects.create(
+            address="10.10.13.1/24",
+            status=self.status_active,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object_id=ap_mgmt.id,
+        )
+        ap_ip.custom_field_data["system_of_record"] = "DNA Center"
+        ap_ip.validated_save()
+        ap_mgmt.device.primary_ip4 = ap_ip
+        ap_mgmt.device.validated_save()
+
     def test_data_loading(self):
         """Test the load() function."""
         self.build_nautobot_objects()
@@ -182,6 +232,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         self.assertEqual(
             [
+                "__HQ__R3JE-OYG4-RCDE__10.10.13.1",
                 "leaf1.abc.inc__HQ__FCW2214L0VK__10.10.10.1",
                 "leaf2.abc.inc__HQ__FCW2214L0UZ__10.10.11.1",
                 "spine1.abc.in__HQ__FCW2212D05S__10.10.12.1",
@@ -189,7 +240,12 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             sorted(dev.get_unique_id() for dev in self.nb_adapter.get_all("device")),
         )
         self.assertEqual(
-            ["Management__leaf1.abc.inc", "Management__leaf2.abc.inc", "Management__spine1.abc.in"],
+            [
+                "Management__",
+                "Management__leaf1.abc.inc",
+                "Management__leaf2.abc.inc",
+                "Management__spine1.abc.in",
+            ],
             sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
         )
         self.assertEqual(
@@ -197,6 +253,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
                 "10.10.10.1/24__leaf1.abc.inc__Management",
                 "10.10.11.1/24__leaf2.abc.inc__Management",
                 "10.10.12.1/24__spine1.abc.in__Management",
+                "10.10.13.1/24____Management",
             ],
             sorted(ipaddr.get_unique_id() for ipaddr in self.nb_adapter.get_all("ipaddress")),
         )
