@@ -142,7 +142,11 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         for dev in DEVICE_FIXTURE:
             for port in PORT_FIXTURE:
                 if port.get("portName"):
-                    expected_ports.append(f"{port['portName']}__{dev['hostname']}")
+                    if port.get("macAddress"):
+                        mac_addr = port["macAddress"].upper()
+                    else:
+                        mac_addr = "None"
+                    expected_ports.append(f"{port['portName']}__{dev['hostname']}__{mac_addr}")
         actual_ports = [port.get_unique_id() for port in self.dna_center.get_all("port")]
         self.assertEqual(expected_ports, actual_ports)
 
