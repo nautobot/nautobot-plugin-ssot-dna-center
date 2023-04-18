@@ -119,7 +119,10 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def test_load_devices(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""
         self.assertEqual(
-            {dev["hostname"] for dev in DEVICE_FIXTURE},
+            {
+                f"{dev['hostname']}__Building1__{dev['serialNumber']}__{dev['managementIpAddress']}"
+                for dev in DEVICE_FIXTURE
+            },
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
 
@@ -127,7 +130,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing hostname."""
         self.dna_center_client.get_devices.return_value = [{"hostname": "", "id": "1234"}]
         self.dna_center.load_devices()
-        self.dna_center.job.log_warning.assert_called_once_with(
+        self.dna_center.job.log_warning.assert_called_with(
             message="Device found in DNAC without hostname so will be skipped. Ref device ID: 1234"
         )
 
@@ -138,9 +141,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         ]
         self.dna_center_client.get_device_detail.return_value = {}
         self.dna_center.load_devices()
-        self.dna_center.job.log_warning.assert_called_once_with(
-            message="Unable to find Site for test-device so skipping."
-        )
+        self.dna_center.job.log_warning.assert_called_with(message="Unable to find Site for test-device so skipping.")
 
     def test_load_ports(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""

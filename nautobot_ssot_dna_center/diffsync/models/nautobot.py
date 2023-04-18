@@ -159,7 +159,7 @@ class NautobotDevice(base.Device):
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
         diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
-        site = Site.objects.get(name=attrs["site"])
+        site = Site.objects.get(name=ids["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
@@ -171,7 +171,7 @@ class NautobotDevice(base.Device):
             device_role=device_role,
             site=site,
             device_type=device_type,
-            serial=attrs["serial"],
+            serial=ids["serial"],
             platform_id=platform.id,
         )
         if attrs.get("floor"):
