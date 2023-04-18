@@ -57,23 +57,21 @@ class Device(DiffSyncModel):
     """DiffSync model for DNA Center devices."""
 
     _modelname = "device"
-    _identifiers = ("name",)
+    _identifiers = ("name", "site", "serial", "management_addr")
     _attributes = (
         "status",
         "role",
         "vendor",
         "model",
         "area",
-        "site",
         "floor",
-        "serial",
         "version",
         "platform",
         "tenant",
     )
     _children = {"port": "ports"}
 
-    name: str
+    name: Optional[str]
     status: Optional[str]
     role: Optional[str]
     vendor: str

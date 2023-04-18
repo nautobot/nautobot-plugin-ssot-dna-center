@@ -268,14 +268,17 @@ class TestNautobotDevice(TransactionTestCase):
         Tenant.objects.create(name="G&A")
 
         self.status_active = Status.objects.get(name="Active")
-        self.ids = {"name": "core-router.testexample.com"}
+        self.ids = {
+            "name": "core-router.testexample.com",
+            "site": "HQ",
+            "serial": "1234567890",
+            "management_addr": "10.10.0.1",
+        }
         self.attrs = {
             "floor": "HQ - Floor 1",
             "model": "Nexus 9300",
             "platform": "cisco_ios",
             "role": "core",
-            "serial": "1234567890",
-            "site": "HQ",
             "status": "Active",
             "tenant": "G&A",
             "vendor": "Cisco",
@@ -301,7 +304,7 @@ class TestNautobotDevice(TransactionTestCase):
             ),
         )
         self.assertEqual(new_dev.platform, Platform.objects.get(slug=self.attrs["platform"]))
-        self.assertEqual(new_dev.serial, self.attrs["serial"])
+        self.assertEqual(new_dev.serial, self.ids["serial"])
         self.assertTrue(new_dev.location)
         self.assertEqual(new_dev.location.name, self.attrs["floor"])
         self.assertEqual(new_dev.tenant.name, self.attrs["tenant"])
