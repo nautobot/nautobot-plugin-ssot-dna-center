@@ -245,11 +245,6 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         devices = self.conn.get_devices()
         for dev in devices:
             self.job.log_debug(message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}")
-            if not dev.get("hostname"):
-                self.job.log_warning(
-                    message=f"Device found in DNAC without hostname so will be skipped. Ref device ID: {dev['id']}"
-                )
-                continue
             platform = "unknown"
             vendor = "Cisco"
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
