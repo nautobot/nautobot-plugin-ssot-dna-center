@@ -125,6 +125,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             areas (List[dict]): List of dictionaries containing location information about a building.
         """
         for location in areas:
+            self.job.log_debug(message=f"Loading area {location['name']}. {location}")
             if location.get("parentId"):
                 self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]]["name"]
             new_area = self.area(
@@ -144,6 +145,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             buildings (List[dict]): List of dictionaries containing location information about a building.
         """
         for location in buildings:
+            self.job.log_debug(message=f"Loading building {location['name']}. {location}")
             address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
             latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
             _area = (
@@ -179,6 +181,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             floors (List[dict]): List of dictionaries containing location information about a floor.
         """
         for location in floors:
+            self.job.log_debug(message=f"Loading floor {location['name']}. {location}")
             _building = self.dnac_location_map[location["parentId"]] if location.get("parentId") else {}
             new_floor = self.floor(
                 name=f"{_building['name']} - {location['name']}",
@@ -241,6 +244,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         """Load Device data from DNA Center info DiffSync models."""
         devices = self.conn.get_devices()
         for dev in devices:
+            self.job.log_debug(message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}")
             if not dev.get("hostname"):
                 self.job.log_warning(
                     message=f"Device found in DNAC without hostname so will be skipped. Ref device ID: {dev['id']}"
@@ -294,6 +298,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         """
         ports = self.conn.get_port_info(device_id=device_id)
         for port in ports:
+            self.job.log_debug(message=f"Loading port {port['portName']} for {dev.name}. {port}")
             port_type = self.conn.get_port_type(port_info=port)
             port_status = self.conn.get_port_status(port_info=port)
             new_port = self.port(
@@ -339,6 +344,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         try:
             self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
         except ObjectNotFound:
+            self.job.log_debug(message=f"Loading IP Address {address} for {device_name} on {interface}.")
             new_ip = self.ipaddress(
                 address=address,
                 device=device_name,
