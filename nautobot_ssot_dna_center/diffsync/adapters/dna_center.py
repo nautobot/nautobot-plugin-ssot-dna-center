@@ -117,6 +117,8 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             self.load_areas(areas)
             self.load_buildings(buildings)
             self.load_floors(floors)
+        else:
+            self.job.log_failure("No location data was returned from DNAC. Unable to proceed.")
 
     def load_areas(self, areas: List[dict]):
         """Load areas from DNAC into DiffSync model.
@@ -360,7 +362,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             primary (bool): Whether the IP Address is the primary IP for the Device.
         """
         try:
-            self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
+            ip_found = self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
+            if ip_found:
+                self.job.log_warning(
+                    message=f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
+                )
         except ObjectNotFound:
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Loading IP Address {address} for {device_name} on {interface}.")
