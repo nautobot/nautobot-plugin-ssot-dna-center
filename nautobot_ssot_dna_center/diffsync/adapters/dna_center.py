@@ -264,27 +264,47 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             else:
                 self.job.log_warning(message=f"Unable to find Site for {dev['hostname']} so skipping.")
                 continue
-            new_dev = self.device(
-                name=dev["hostname"],
-                status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
-                role=dev["role"],
-                vendor=vendor,
-                model=dev["platformId"] if dev.get("platformId") else "Unknown",
-                area=loc_data["areas"][-1],
-                site=loc_data["building"],
-                floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
-                serial=dev.get("serialNumber"),
-                version=dev.get("softwareVersion"),
-                platform=platform,
-                tenant=self.tenant.name if self.tenant else None,
-                management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
-                uuid=None,
-            )
             try:
-                self.add(new_dev)
-                self.load_ports(device_id=dev["id"], dev=new_dev)
-            except ValidationError as err:
-                self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(
+                        message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
+                    )
+                device_found = self.get(
+                    self.device,
+                    {
+                        "name": dev["hostname"],
+                        "site": loc_data["building"],
+                        "serial": dev["serialNumber"],
+                        "management_addr": dev["managementIpAddress"],
+                    },
+                )
+                if device_found:
+                    self.job.log_warning(
+                        message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']}"
+                    )
+                    continue
+            except ObjectNotFound:
+                new_dev = self.device(
+                    name=dev["hostname"],
+                    status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
+                    role=dev["role"],
+                    vendor=vendor,
+                    model=dev["platformId"] if dev.get("platformId") else "Unknown",
+                    area=loc_data["areas"][-1],
+                    site=loc_data["building"],
+                    floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
+                    serial=dev.get("serialNumber"),
+                    version=dev.get("softwareVersion"),
+                    platform=platform,
+                    tenant=self.tenant.name if self.tenant else None,
+                    management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
+                    uuid=None,
+                )
+                try:
+                    self.add(new_dev)
+                    self.load_ports(device_id=dev["id"], dev=new_dev)
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
 
     def load_ports(self, device_id: str, dev: DnaCenterDevice):
         """Load port info from DNAC into Port DiffSyncModel.
