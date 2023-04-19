@@ -256,7 +256,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             else:
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     platform = "meraki"
-            if "Juniper" in dev["type"]:
+            if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
             dev_details = self.conn.get_device_detail(dev_id=dev["id"])
             if dev_details and dev_details.get("siteHierarchyGraphId"):
