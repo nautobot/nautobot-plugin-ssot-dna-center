@@ -4,9 +4,10 @@ from typing import List
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
-from nautobot.dcim.models import Device, Interface, Location, LocationType, Region, Site
+from nautobot.dcim.models import Device, Interface, Location, LocationType, Site
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import IPAddress
@@ -124,14 +125,24 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         Args:
             areas (List[dict]): List of dictionaries containing location information about a building.
         """
+        PLUGIN_SETTINGS = settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"]
+        print(f"setting is {PLUGIN_SETTINGS.get('import_global')}")
         for location in areas:
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Loading area {location['name']}. {location}")
             if location.get("parentId"):
-                self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]]["name"]
+                parent_name = self.dnac_location_map[location["parentId"]]["name"]
+                self.dnac_location_map[location["id"]]["parent"] = parent_name
+            else:
+                parent_name = None
+            if not PLUGIN_SETTINGS.get("import_global"):
+                if location["name"] == "Global":
+                    continue
+                if parent_name == "Global":
+                    parent_name = None
             new_area = self.area(
                 name=location["name"],
-                parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else None,
+                parent=parent_name,
                 uuid=None,
             )
             try:

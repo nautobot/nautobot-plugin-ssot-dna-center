@@ -19,7 +19,7 @@ class NautobotSsotDnaCenterConfig(PluginConfig):
     required_settings = []
     min_version = "1.4.0"
     max_version = "1.9999"
-    default_settings = {}
+    default_settings = {"import_global": True}
     caching_config = {}
 
     def ready(self):
