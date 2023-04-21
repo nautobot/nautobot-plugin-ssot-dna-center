@@ -47,13 +47,6 @@ class NautobotArea(base.Area):
         new_region.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
-    def delete(self):
-        """Delete Region in Nautobot from Area object."""
-        region = Region.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Region {region.name}.")
-        self.diffsync.objects_to_delete["regions"].append(region)
-        return self
-
 
 class NautobotBuilding(base.Building):
     """Nautobot implementation of Building DiffSync model."""
