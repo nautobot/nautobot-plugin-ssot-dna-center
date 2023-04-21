@@ -35,17 +35,21 @@ class NautobotArea(base.Area):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
-        diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
-        new_region = Region(
-            name=ids["name"],
-        )
-        if ids.get("parent"):
-            try:
-                new_region.parent = Region.objects.get(name=ids["parent"])
-            except Region.DoesNotExist as err:
-                diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
-        new_region.validated_save()
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        try:
+            Region.objects.get(name=ids["name"])
+            diffsync.job.log_warning(message=f"Region {ids['name']} already exists so won't be created.")
+        except Region.DoesNotExist:
+            diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
+            new_region = Region(
+                name=ids["name"],
+            )
+            if ids.get("parent"):
+                try:
+                    new_region.parent = Region.objects.get(name=ids["parent"])
+                except Region.DoesNotExist as err:
+                    diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
+            new_region.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
 
 class NautobotBuilding(base.Building):
