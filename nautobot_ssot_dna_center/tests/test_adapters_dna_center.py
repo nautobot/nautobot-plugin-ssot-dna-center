@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
@@ -89,6 +90,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         expected = EXPECTED_AREAS, EXPECTED_BUILDINGS, EXPECTED_FLOORS
         self.assertEqual(actual, expected)
 
+    @override_settings(PLUGIN_SETTINGS={"nautobot_ssot_dna_center": {"import_global": True}})
     def test_load_locations(self):
         """Test Nautobot SSoT for Cisco DNA Center load_locations() function."""
         area_actual, building_actual, floor_actual = [], [], []
