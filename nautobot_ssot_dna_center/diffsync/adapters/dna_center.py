@@ -38,10 +38,10 @@ class LabelMixin:
             "label": "Last sync from DNA Center",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
-        for model in [Region, Site, Location, Device, Interface, IPAddress]:
+        for model in [Site, Location, Device, Interface, IPAddress]:
             custom_field.content_types.add(ContentType.objects.get_for_model(model))
 
-        for modelname in ["area", "building", "floor", "device", "port", "ipaddress"]:
+        for modelname in ["building", "floor", "device", "port", "ipaddress"]:
             for local_instance in self.get_all(modelname):
                 unique_id = local_instance.get_unique_id()
                 # Verify that the object now has a counterpart in the target DiffSync
@@ -63,9 +63,7 @@ class LabelMixin:
             nautobot_object.custom_field_data["system_of_record"] = "DNA Center"
             nautobot_object.validated_save()
 
-        if modelname == "area":
-            _label_object(Region.objects.get(name=model_instance.name))
-        elif modelname == "building":
+        if modelname == "building":
             _label_object(Site.objects.get(name=model_instance.name))
         elif modelname == "floor":
             _label_object(

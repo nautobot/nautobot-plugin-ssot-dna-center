@@ -54,20 +54,6 @@ class TestNautobotArea(TransactionTestCase):
             message="Unable to find Region USA for TX. Region matching query does not exist."
         )
 
-    def test_delete(self):
-        """Validate the NautobotArea delete() method deletes a Region."""
-        ds_mock_region = MagicMock(spec=Region)
-        ds_mock_region.uuid = "1234567890"
-        ds_mock_region.diffsync = MagicMock()
-        ds_mock_region.diffsync.job.log_info = MagicMock()
-        mock_region = MagicMock(spec=Region)
-        mock_region.name = "Test"
-        region_get_mock = MagicMock(return_value=mock_region)
-        with patch.object(Region.objects, "get", region_get_mock):
-            result = NautobotArea.delete(ds_mock_region)
-        ds_mock_region.diffsync.job.log_info.assert_called_once_with(message="Deleting Region Test.")
-        self.assertEqual(ds_mock_region, result)
-
 
 class TestNautobotBuilding(TransactionTestCase):
     """Test the NautobotBuilding class."""

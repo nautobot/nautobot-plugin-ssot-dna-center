@@ -11,7 +11,6 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     # pylint: disable=invalid-name
     ContentType = apps.get_model("contenttypes", "ContentType")
     CustomField = apps.get_model("extras", "CustomField")
-    Region = apps.get_model("dcim", "Region")
     Site = apps.get_model("dcim", "Site")
     Location = apps.get_model("dcim", "Location")
     Device = apps.get_model("dcim", "Device")
@@ -32,6 +31,6 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
         "label": "Last sync from DNA Center",
     }
     sync_custom_field, _ = CustomField.objects.update_or_create(name=sync_cf_dict["name"], defaults=sync_cf_dict)
-    for model in [Region, Site, Location, Device, Interface, IPAddress]:
+    for model in [Site, Location, Device, Interface, IPAddress]:
         sor_custom_field.content_types.add(ContentType.objects.get_for_model(model))
         sync_custom_field.content_types.add(ContentType.objects.get_for_model(model))

@@ -2,10 +2,13 @@
 from typing import Optional, List
 from uuid import UUID
 from diffsync import DiffSyncModel
+from diffsync.enum import DiffSyncModelFlags
 
 
 class Area(DiffSyncModel):
     """DiffSync model for DNA Center areas."""
+
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
 
     _modelname = "area"
     _identifiers = ("name", "parent")

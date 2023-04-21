@@ -57,7 +57,7 @@ class NautobotAdapter(DiffSync):
 
     def load_regions(self):
         """Load Region data from Nautobt into DiffSync models."""
-        for region in OrmRegion.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        for region in OrmRegion.objects.all():
             try:
                 self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
                 self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
