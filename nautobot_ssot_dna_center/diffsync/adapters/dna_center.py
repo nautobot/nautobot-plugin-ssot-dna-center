@@ -215,11 +215,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             except ValidationError as err:
                 self.job.log_warning(message=f"Unable to load floor {_building['name']} - {location['name']}. {err}")
 
-    def parse_and_sort_locations(self, locations: list):
+    def parse_and_sort_locations(self, locations: List[dict]):
         """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
 
         Args:
-            locations (list): List of Locations (Sites) from DNAC to be separated.
+            locations (List[dict]): List of Locations (Sites) from DNAC to be separated.
 
         Returns:
             tuple (List[dict], List[dict], List[dict]): Tuple containing lists of areas, buildings, and floors in DNAC to be processed.
@@ -243,11 +243,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         areas = sorted(areas, key=lambda x: len(x["siteHierarchy"].split("/")))
         return areas, buildings, floors
 
-    def build_dnac_location_map(self, locations: list):
+    def build_dnac_location_map(self, locations: List[dict]):
         """Build out the initial DNAC location map for Location ID to name and type.
 
         Args:
-            locations (list): List of Locations (Sites) from DNAC.
+            locations (List[dict]): List of Locations (Sites) from DNAC.
 
         Returns:
             dict: Dictionary of Locations mapped with ID to their name and location type.
