@@ -55,10 +55,28 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client, tenant=None)
         self.dna_center.job.log_warning = MagicMock()
         self.dna_center.job.log_failure = MagicMock()
-        self.dna_center.load()
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
+
+        self.mock_device = DnaCenterDevice(
+            name="leaf3.abc.inc",
+            status="Active",
+            role="CORE",
+            vendor="Cisco",
+            model="CSR1000v",
+            area="NY",
+            site="Building1",
+            floor="Floor 1",
+            serial="FQ234567",
+            version="16.2.3",
+            platform="cisco_ios",
+            tenant="IT",
+            management_addr="10.10.0.1",
+            uuid=None,
+        )
 
     def test_build_dnac_location_map(self):
         """Test Nautobot adapter build_dnac_location_map method."""
+        self.dna_center.dnac_location_map = {}
         actual = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
         expected = EXPECTED_DNAC_LOCATION_MAP
         self.assertEqual(actual, expected)
@@ -93,7 +111,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
     def test_load_areas_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_areas() function with Global area."""
-        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
         self.dna_center.load_areas(areas=EXPECTED_AREAS)
         area_expected = [
             "Global__None",
@@ -105,7 +122,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
     def test_load_areas_wo_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_areas() function without Global area."""
-        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
         self.dna_center.dnac_location_map.pop("9e5f9fc2-032e-45e8-994c-4a00629648e8")
         self.dna_center.load_areas(areas=EXPECTED_AREAS)
         area_expected = [
@@ -117,7 +133,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
     def test_load_buildings_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with Global area."""
-        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
         building_expected = ["Building1__NY"]
         building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
@@ -125,7 +140,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
     def test_load_floors(self):
         """Test Nautobot SSoT for Cisco DNA Center load_floors() function."""
-        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
         self.dna_center.load_floors(floors=EXPECTED_FLOORS)
         floor_expected = ["Building1 - Floor1__Building1"]
         floor_actual = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
@@ -133,6 +147,8 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
 
     def test_load_devices(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""
+        self.dna_center.load_ports = MagicMock()
+        self.dna_center.load_devices()
         self.assertEqual(
             {
                 f"{dev['hostname']}__Building1__{dev['serialNumber']}__{dev['managementIpAddress']}"
@@ -140,6 +156,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             },
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
+        self.dna_center.load_ports.assert_called()
 
     def test_load_devices_missing_building(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing building."""
@@ -153,37 +170,21 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def test_load_ports(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""
         expected_ports = []
-        for dev in DEVICE_FIXTURE:
-            for port in PORT_FIXTURE:
-                if port.get("portName"):
-                    if port.get("macAddress"):
-                        mac_addr = port["macAddress"].upper()
-                    else:
-                        mac_addr = "None"
-                    expected_ports.append(f"{port['portName']}__{dev['hostname']}__{mac_addr}")
+        for port in PORT_FIXTURE:
+            if port.get("portName"):
+                if port.get("macAddress"):
+                    mac_addr = port["macAddress"].upper()
+                else:
+                    mac_addr = "None"
+                expected_ports.append(f"{port['portName']}__leaf3.abc.inc__{mac_addr}")
+        self.dna_center.load_ports(device_id="1234567890", dev=self.mock_device)
         actual_ports = [port.get_unique_id() for port in self.dna_center.get_all("port")]
         self.assertEqual(expected_ports, actual_ports)
 
     def test_load_ports_validation_error(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function throwing ValidationError."""
         self.dna_center.add = MagicMock(side_effect=ValidationError(message="leaf3.abc.inc not found"))
-        mock_device = DnaCenterDevice(
-            name="leaf3.abc.inc",
-            status="Active",
-            role="CORE",
-            vendor="Cisco",
-            model="CSR1000v",
-            area="NY",
-            site="Building1",
-            floor="Floor 1",
-            serial="FQ234567",
-            version="16.2.3",
-            platform="cisco_ios",
-            tenant="IT",
-            management_addr="10.10.0.1",
-            uuid=None,
-        )
-        self.dna_center.load_ports(device_id="1234567890", dev=mock_device)
+        self.dna_center.load_ports(device_id="1234567890", dev=self.mock_device)
         self.dna_center.job.log_warning.assert_called_with(
             message="Unable to load port Vlan848 for leaf3.abc.inc. ['leaf3.abc.inc not found']"
         )
