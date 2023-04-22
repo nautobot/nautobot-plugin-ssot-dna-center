@@ -10,6 +10,7 @@ def load_json(path):
 
 
 LOCATION_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_locations.json")
+EXPECTED_DNAC_LOCATION_MAP = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_dnac_location_map.json")
 RECV_LOCATION_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_locations_recv.json")
 DEVICE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_devices.json")
 RECV_DEVICE_FIXTURE = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/get_devices_recv.json")
