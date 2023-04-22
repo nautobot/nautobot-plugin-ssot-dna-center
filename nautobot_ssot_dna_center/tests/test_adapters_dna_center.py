@@ -12,6 +12,7 @@ from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapt
 from nautobot_ssot_dna_center.diffsync.models.dna_center import DnaCenterDevice
 from nautobot_ssot_dna_center.tests.fixtures import (
     LOCATION_FIXTURE,
+    EXPECTED_DNAC_LOCATION_MAP,
     DEVICE_FIXTURE,
     DEVICE_DETAIL_FIXTURE,
     PORT_FIXTURE,
@@ -59,28 +60,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def test_build_dnac_location_map(self):
         """Test Nautobot adapter build_dnac_location_map method."""
         actual = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
-        expected = {
-            "9e5f9fc2-032e-45e8-994c-4a00629648e8": {
-                "name": "Global",
-                "loc_type": "area",
-                "parent": None,
-            },
-            "49aa97a7-5d45-4303-89dd-f76dfbfc624a": {
-                "name": "Floor1",
-                "loc_type": "area",
-                "parent": None,
-            },
-            "5c59e37a-f12d-4e84-a085-ac5c02f240d4": {
-                "name": "Building1",
-                "loc_type": "area",
-                "parent": None,
-            },
-            "3f07768d-6b5c-4b4d-8577-29f765bd49c9": {
-                "name": "NY",
-                "loc_type": "area",
-                "parent": None,
-            },
-        }
+        expected = EXPECTED_DNAC_LOCATION_MAP
         self.assertEqual(actual, expected)
 
     def test_parse_and_sort_locations(self):
