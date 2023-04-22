@@ -31,7 +31,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def setUp(self):
         """Initialize test case."""
         self.dna_center_client = MagicMock()
-        self.dna_center_client.get_locations.return_value = LOCATION_FIXTURE
         self.dna_center_client.get_devices.return_value = DEVICE_FIXTURE
         self.dna_center_client.find_address_and_type.side_effect = [
             ("", "floor"),
@@ -55,6 +54,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         )
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client, tenant=None)
         self.dna_center.job.log_warning = MagicMock()
+        self.dna_center.job.log_failure = MagicMock()
         self.dna_center.load()
 
     def test_build_dnac_location_map(self):
@@ -70,33 +70,65 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         expected = EXPECTED_AREAS, EXPECTED_BUILDINGS, EXPECTED_FLOORS
         self.assertEqual(actual, expected)
 
-    @override_settings(PLUGIN_SETTINGS={"nautobot_ssot_dna_center": {"import_global": True}})
-    def test_load_locations(self):
-        """Test Nautobot SSoT for Cisco DNA Center load_locations() function."""
-        area_actual, building_actual, floor_actual = [], [], []
-        area_expected = [area.get_unique_id() for area in self.dna_center.get_all("area")]
-        building_expected = [building.get_unique_id() for building in self.dna_center.get_all("building")]
-        floor_expected = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
+    def test_load_locations_success(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_locations() function successfully."""
+        self.dna_center.load_areas = MagicMock()
+        self.dna_center.load_buildings = MagicMock()
+        self.dna_center.load_floors = MagicMock()
+        self.dna_center_client.get_location.return_value = [{"name": "NY"}]
+        self.dna_center.load_locations()
+        self.dna_center_client.get_locations.assert_called()
+        self.dna_center.load_areas.assert_called_once()
+        self.dna_center.load_buildings.assert_called_once()
+        self.dna_center.load_floors.assert_called_once()
 
-        for location in LOCATION_FIXTURE:
-            name = location["name"]
-            parent = (
-                self.dna_center.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else None
-            )
-            loc_name = f"{name}__{parent}"
-            if location.get("additionalInfo"):
-                for info in location["additionalInfo"]:
-                    if info["attributes"].get("type") == "area":
-                        area_actual.append(loc_name)
-                    if info["attributes"].get("type") == "building":
-                        building_actual.append(loc_name)
-                    if info["attributes"].get("type") == "floor":
-                        loc_name = f"{parent} - {loc_name}"
-                        floor_actual.append(loc_name)
-            else:
-                area_actual.append(loc_name)
+    def test_load_locations_failure(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_locations() function fails."""
+        self.dna_center_client.get_locations.return_value = []
+        self.dna_center.load_locations()
+        self.dna_center.job.log_failure.assert_called_once_with(
+            "No location data was returned from DNAC. Unable to proceed."
+        )
+
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
+    def test_load_areas_w_global(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_areas() function with Global area."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
+        self.dna_center.load_areas(areas=EXPECTED_AREAS)
+        area_expected = [
+            "Global__None",
+            "NY__Global",
+        ]
+        area_actual = [area.get_unique_id() for area in self.dna_center.get_all("area")]
         self.assertEqual(area_actual, area_expected)
+
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
+    def test_load_areas_wo_global(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_areas() function without Global area."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
+        self.dna_center.dnac_location_map.pop("9e5f9fc2-032e-45e8-994c-4a00629648e8")
+        self.dna_center.load_areas(areas=EXPECTED_AREAS)
+        area_expected = [
+            "NY__None",
+        ]
+        area_actual = [area.get_unique_id() for area in self.dna_center.get_all("area")]
+        self.assertEqual(area_actual, area_expected)
+
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
+    def test_load_buildings_w_global(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with Global area."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
+        self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
+        building_expected = ["Building1__NY"]
+        building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
         self.assertEqual(building_actual, building_expected)
+
+    def test_load_floors(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_floors() function."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
+        self.dna_center.load_floors(floors=EXPECTED_FLOORS)
+        floor_expected = ["Building1 - Floor1__Building1"]
+        floor_actual = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
         self.assertEqual(floor_actual, floor_expected)
 
     def test_load_devices(self):

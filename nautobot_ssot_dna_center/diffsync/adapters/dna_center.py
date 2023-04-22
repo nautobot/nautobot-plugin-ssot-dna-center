@@ -125,21 +125,16 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         Args:
             areas (List[dict]): List of dictionaries containing location information about a building.
         """
-        PLUGIN_SETTINGS = settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"]
-        print(f"setting is {PLUGIN_SETTINGS.get('import_global')}")
         for location in areas:
-            if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Loading area {location['name']}. {location}")
-            if location.get("parentId"):
-                parent_name = self.dnac_location_map[location["parentId"]]["name"]
-                self.dnac_location_map[location["id"]]["parent"] = parent_name
-            else:
-                parent_name = None
-            if not PLUGIN_SETTINGS.get("import_global"):
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
                 if location["name"] == "Global":
                     continue
-                if parent_name == "Global":
-                    parent_name = None
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Loading area {location['name']}. {location}")
+            parent_name = None
+            if location.get("parentId") and location["parentId"] in self.dnac_location_map:
+                parent_name = self.dnac_location_map[location["parentId"]]["name"]
+                self.dnac_location_map[location["id"]]["parent"] = parent_name
             new_area = self.area(
                 name=location["name"],
                 parent=parent_name,
@@ -161,11 +156,14 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 self.job.log_info(message=f"Loading building {location['name']}. {location}")
             address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
             latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
-            _area = (
-                self.dnac_location_map[location["parentId"]]
-                if location.get("parentId")
-                else {"name": "Global", "parent": None}
-            )
+            if location["parentId"] in self.dnac_location_map:
+                _area = (
+                    self.dnac_location_map[location["parentId"]]
+                    if location.get("parentId")
+                    else {"name": "Global", "parent": None}
+                )
+            else:
+                _area = {"name": "", "parent": None}
             new_building = self.building(
                 name=location["name"],
                 address=address,
@@ -196,7 +194,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         for location in floors:
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Loading floor {location['name']}. {location}")
-            _building = self.dnac_location_map[location["parentId"]] if location.get("parentId") else {}
+            if location["parentId"] in self.dnac_location_map:
+                _building = self.dnac_location_map[location["parentId"]]
+            else:
+                self.job.log_warning(message=f"Parent to {location['name']} can't be found so will be skipped.")
+                continue
             new_floor = self.floor(
                 name=f"{_building['name']} - {location['name']}",
                 building=_building["name"],
