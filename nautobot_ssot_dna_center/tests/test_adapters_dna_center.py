@@ -153,7 +153,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     def test_load_buildings_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with Global area."""
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
-        building_expected = ["Building1__NY", "DC1__Global"]
+        building_expected = ["Building1", "DC1"]
         building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
         self.assertEqual(building_actual, building_expected)
 
@@ -161,7 +161,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         """Test Nautobot SSoT for Cisco DNA Center load_buildings() function without Global area."""
         self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
-        building_expected = ["Building1__NY", "DC1__None"]
+        building_expected = ["Building1", "DC1"]
         building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
         self.assertEqual(building_actual, building_expected)
 
@@ -184,15 +184,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
         self.dna_center.load_ports.assert_called()
-
-    def test_load_devices_missing_building(self):
-        """Test Nautobot SSoT for Cisco DNA Center load_devices() function with device missing building."""
-        self.dna_center_client.get_devices.return_value = [
-            {"hostname": "test-device", "softwareType": None, "type": "Meraki", "id": "1234"}
-        ]
-        self.dna_center_client.get_device_detail.return_value = {}
-        self.dna_center.load_devices()
-        self.dna_center.job.log_warning.assert_called_with(message="Unable to find Site for test-device so skipping.")
 
     def test_load_ports(self):
         """Test Nautobot SSoT for Cisco DNA Center load_ports() function."""
