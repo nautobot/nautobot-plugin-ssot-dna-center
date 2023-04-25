@@ -52,12 +52,14 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         self.dna_center_client.get_port_status.return_value = "active"
 
         self.job = DnaCenterDataSource()
+        self.job.kwargs["debug"] = True
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.dna_center = DnaCenterAdapter(job=self.job, sync=None, client=self.dna_center_client, tenant=None)
         self.dna_center.job.log_warning = MagicMock()
         self.dna_center.job.log_failure = MagicMock()
+        self.dna_center.job.log_info = MagicMock()
         self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP
 
         self.mock_device = DnaCenterDevice(
@@ -138,6 +140,9 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         ]
         area_actual = [area.get_unique_id() for area in self.dna_center.get_all("area")]
         self.assertEqual(area_actual, area_expected)
+        self.dna_center.job.log_info.assert_called_with(
+            message="Loading area NY. {'additionalInfo': [{'attributes': {'addressInheritedFrom': '3f07768d-6b5c-4b4d-8577-29f765bd49c9', 'type': 'area'}, 'nameSpace': 'Location'}], 'id': '3f07768d-6b5c-4b4d-8577-29f765bd49c9', 'instanceTenantId': '623f029857259506a56ad9bd', 'name': 'NY', 'parentId': '9e5f9fc2-032e-45e8-994c-4a00629648e8', 'siteHierarchy': '9e5f9fc2-032e-45e8-994c-4a00629648e8/3f07768d-6b5c-4b4d-8577-29f765bd49c9', 'siteNameHierarchy': 'Global/NY'}"
+        )
 
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
     def test_load_areas_wo_global(self):
