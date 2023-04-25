@@ -88,7 +88,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
     port = DnaCenterPort
     ipaddress = DnaCenterIPAddress
 
-    top_level = ["area", "device", "ipaddress"]
+    top_level = ["area", "building", "device", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, tenant: Tenant, **kwargs):
         """Initialize DNA Center.
@@ -163,7 +163,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     else {"name": "Global", "parent": None}
                 )
             else:
-                _area = {"name": "", "parent": None}
+                _area = {"name": None, "parent": None}
             new_building = self.building(
                 name=location["name"],
                 address=address,
@@ -175,13 +175,6 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             )
             try:
                 self.add(new_building)
-                try:
-                    parent = self.get(self.area, {"name": _area["name"], "parent": _area["parent"]})
-                    parent.add_child(new_building)
-                except ObjectNotFound as err:
-                    self.job.log_warning(
-                        message=f"Unable to find area {_area['name']} for building {location['name']}. {err}"
-                    )
             except ValidationError as err:
                 self.job.log_warning(message=f"Unable to load building {location['name']}. {err}")
 
@@ -208,14 +201,30 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             try:
                 self.add(new_floor)
                 try:
-                    parent = self.get(self.building, {"name": _building["name"], "area": _building["parent"]})
+                    parent = self.get(self.building, _building["name"])
                     parent.add_child(new_floor)
                 except ObjectNotFound as err:
                     self.job.log_warning(
-                        message=f"Unable to find building {_building['name']} in area {_building['parent']} for floor {location['name']}. {err}"
+                        message=f"Unable to find building {_building['name']} for floor {location['name']}. {err}"
                     )
             except ValidationError as err:
                 self.job.log_warning(message=f"Unable to load floor {_building['name']} - {location['name']}. {err}")
+
+    def load_unassigned_building(self):
+        """Create Unassigned building for Sites missing an assigned Building."""
+        try:
+            self.get(self.building, {"name": "Unassigned", "area": None})
+        except ObjectNotFound:
+            new_building = self.building(
+                name="Unassigned",
+                address=None,
+                area=None,
+                latitude=None,
+                longitude=None,
+                tenant=self.tenant.name if self.tenant else None,
+                uuid=None,
+            )
+            self.add(new_building)
 
     def parse_and_sort_locations(self, locations: List[dict]):
         """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
@@ -228,6 +237,9 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         """
         areas, buildings, floors = [], [], []
         for location in locations:
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
+                if location["name"] == "Global":
+                    continue
             for info in location["additionalInfo"]:
                 if info["attributes"].get("type") == "building":
                     buildings.append(location)
@@ -239,8 +251,10 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     break
             else:
                 areas.append(location)
-            if location.get("parentId"):
+            if location.get("parentId") and location["parentId"] in self.dnac_location_map:
                 self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]]["name"]
+            else:
+                self.dnac_location_map[location["id"]]["parent"] = None
         # sort areas by length of siteHierarchy so that parent areas loaded before child areas.
         areas = sorted(areas, key=lambda x: len(x["siteHierarchy"].split("/")))
         return areas, buildings, floors
@@ -254,7 +268,13 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         Returns:
             dict: Dictionary of Locations mapped with ID to their name and location type.
         """
-        return {loc["id"]: {"name": loc["name"], "parent": None, "loc_type": "area"} for loc in locations}
+        location_map = {}
+        for loc in locations:
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
+                if loc["name"] == "Global":
+                    continue
+            location_map[loc["id"]] = {"name": loc["name"], "parent": None, "loc_type": "area"}
+        return location_map
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
@@ -270,13 +290,16 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
             dev_details = self.conn.get_device_detail(dev_id=dev["id"])
+            loc_data = {}
             if dev_details and dev_details.get("siteHierarchyGraphId"):
                 loc_data = self.conn.parse_site_hierarchy(
                     location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
                 )
-            else:
-                self.job.log_warning(message=f"Unable to find Site for {dev['hostname']} so skipping.")
-                continue
+            if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
+                self.job.log_info(message="Loading Unassigned building for devices missing a Site.")
+                self.load_unassigned_building()
+                if loc_data.get("building") != "Unassigned":
+                    loc_data["building"] = "Unassigned"
             try:
                 if self.job.kwargs.get("debug"):
                     self.job.log_info(
@@ -303,7 +326,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     role=dev["role"],
                     vendor=vendor,
                     model=dev["platformId"] if dev.get("platformId") else "Unknown",
-                    area=loc_data["areas"][-1],
+                    area=loc_data["areas"][-1] if loc_data.get("areas") else None,
                     site=loc_data["building"],
                     floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
                     serial=dev.get("serialNumber"),

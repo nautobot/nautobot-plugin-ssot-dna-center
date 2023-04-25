@@ -13,7 +13,7 @@ class Area(DiffSyncModel):
     _modelname = "area"
     _identifiers = ("name", "parent")
     _attributes = ()
-    _children = {"building": "buildings"}
+    _children = {}
 
     name: str
     parent: Optional[str]
@@ -25,14 +25,16 @@ class Area(DiffSyncModel):
 class Building(DiffSyncModel):
     """DiffSync model for DNA Center buildings."""
 
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
+
     _modelname = "building"
-    _identifiers = ("name", "area")
-    _attributes = ("address", "latitude", "longitude", "tenant")
+    _identifiers = ("name",)
+    _attributes = ("address", "area", "latitude", "longitude", "tenant")
     _children = {"floor": "floors"}
 
     name: str
     address: Optional[str]
-    area: str
+    area: Optional[str]
     latitude: Optional[str]
     longitude: Optional[str]
     tenant: Optional[str]
