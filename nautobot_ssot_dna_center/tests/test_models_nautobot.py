@@ -78,8 +78,8 @@ class TestNautobotBuilding(TransactionTestCase):
 
     def test_create_wo_parent(self):
         """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
-        ids = {"name": "HQ", "area": "NY"}
-        attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
+        ids = {"name": "HQ"}
+        attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.log_info.assert_called_with(message="Unable to find parent NY")
@@ -90,15 +90,15 @@ class TestNautobotBuilding(TransactionTestCase):
 
     def test_create_w_parent(self):
         """Validate the NautobotBuilding create() method creates a Site with a matching parent Region."""
-        ids = {"name": "HQ", "area": "NY"}
-        attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
+        ids = {"name": "HQ"}
+        attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
         ny_area = Region.objects.create(name="NY", slug="ny")
         ny_area.validated_save()
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.log_info.assert_called_once_with(message="Creating Site HQ.")
         site_obj = Site.objects.get(name=ids["name"])
-        self.assertEqual(site_obj.region.name, ids["area"])
+        self.assertEqual(site_obj.region.name, attrs["area"])
         self.assertEqual(site_obj.physical_address, attrs["address"])
         self.assertEqual(site_obj.tenant.name, attrs["tenant"])
 
