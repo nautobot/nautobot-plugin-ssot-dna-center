@@ -13,10 +13,12 @@ from nautobot_ssot_dna_center.diffsync.models.dna_center import DnaCenterDevice
 from nautobot_ssot_dna_center.tests.fixtures import (
     LOCATION_FIXTURE,
     EXPECTED_DNAC_LOCATION_MAP,
+    EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL,
     DEVICE_FIXTURE,
     DEVICE_DETAIL_FIXTURE,
     PORT_FIXTURE,
     EXPECTED_AREAS,
+    EXPECTED_AREAS_WO_GLOBAL,
     EXPECTED_BUILDINGS,
     EXPECTED_FLOORS,
 )
@@ -122,7 +124,7 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
     def test_load_areas_wo_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_areas() function without Global area."""
-        self.dna_center.dnac_location_map.pop("9e5f9fc2-032e-45e8-994c-4a00629648e8")
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL
         self.dna_center.load_areas(areas=EXPECTED_AREAS)
         area_expected = [
             "NY__None",
