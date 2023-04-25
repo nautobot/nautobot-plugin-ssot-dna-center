@@ -155,6 +155,13 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         area_actual = [area.get_unique_id() for area in self.dna_center.get_all("area")]
         self.assertEqual(area_actual, area_expected)
 
+    def test_load_areas_with_validation_error(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_areas() function with a ValidationError."""
+        self.dna_center.add = MagicMock()
+        self.dna_center.add.side_effect = ValidationError(message="Device load failed!")
+        self.dna_center.load_areas(areas=EXPECTED_AREAS_WO_GLOBAL)
+        self.dna_center.job.log_warning.assert_called_with(message="Unable to load area NY. ['Device load failed!']")
+
     def test_load_buildings_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with Global area."""
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
