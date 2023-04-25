@@ -199,6 +199,14 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         floor_actual = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
         self.assertEqual(floor_actual, floor_expected)
 
+    def test_load_floors_missing_parent(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_floors() function with missing parent."""
+        self.dna_center.dnac_location_map = {}
+        self.dna_center.load_floors(floors=EXPECTED_FLOORS)
+        self.dna_center.job.log_warning.assert_called_with(
+            message="Parent to Main Floor can't be found so will be skipped."
+        )
+
     def test_load_devices(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""
         self.dna_center.load_ports = MagicMock()
