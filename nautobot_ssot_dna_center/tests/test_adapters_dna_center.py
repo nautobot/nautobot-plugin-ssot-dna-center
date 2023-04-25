@@ -177,6 +177,12 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
         self.assertEqual(building_actual, building_expected)
 
+    def test_load_buildings_duplicate(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with duplicate building."""
+        self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
+        self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
+        self.dna_center.job.log_warning.assert_called_with(message="Building DC1 already loaded so skipping.")
+
     def test_load_floors(self):
         """Test Nautobot SSoT for Cisco DNA Center load_floors() function."""
         self.dna_center.load_floors(floors=EXPECTED_FLOORS)
