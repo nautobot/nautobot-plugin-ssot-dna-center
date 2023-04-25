@@ -15,6 +15,7 @@ class DNACInstanceTable(BaseTable):
     host_url = tables.Column(linkify=False)
     port = tables.Column(linkify=False)
     auth_group = tables.Column(linkify=True)
+    tenant = tables.Column(linkify=True)
     actions = ButtonsColumn(
         models.DNACInstance,
         # Option for modifying the default action buttons on each row:
@@ -32,13 +33,8 @@ class DNACInstanceTable(BaseTable):
             "name",
             "port",
             "auth_group",
+            "tenant",
         )
 
         # Option for modifying the columns that show up in the list view by default:
-        default_columns = (
-            "pk",
-            "name",
-            "host_url",
-            "port",
-            "auth_group",
-        )
+        default_columns = ("pk", "name", "host_url", "port", "auth_group", "tenant")
