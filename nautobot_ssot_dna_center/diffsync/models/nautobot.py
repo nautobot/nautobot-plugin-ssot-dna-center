@@ -1,5 +1,6 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
     Device,
@@ -78,6 +79,11 @@ class NautobotBuilding(base.Building):
 
     def update(self, attrs):
         """Update Site in Nautobot from Building object."""
+        if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("update_locations"):
+            self.diffsync.job.log_warning(
+                message=f"`update_locations` setting is disabled so will skip updating {self.name}."
+            )
+            return None
         site = Site.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
         if "address" in attrs:
@@ -98,6 +104,11 @@ class NautobotBuilding(base.Building):
 
     def delete(self):
         """Delete Site in Nautobot from Building object."""
+        if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("update_locations"):
+            self.diffsync.job.log_warning(
+                message=f"`update_locations` setting is disabled so will skip deleting {self.name}."
+            )
+            return None
         site = Site.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
         self.diffsync.objects_to_delete["sites"].append(site)
