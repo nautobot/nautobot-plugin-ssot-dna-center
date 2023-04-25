@@ -25,6 +25,7 @@ from nautobot_ssot_dna_center.tests.fixtures import (
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
 
 
+@override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
 class TestDnaCenterAdapterTestCase(TransactionTestCase):
     """Test NautobotSsotDnaCenterAdapter class."""
 
@@ -83,12 +84,30 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         expected = EXPECTED_DNAC_LOCATION_MAP
         self.assertEqual(actual, expected)
 
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
+    def test_build_dnac_location_map_wo_global(self):
+        """Test Nautobot adapter build_dnac_location_map method without global."""
+        self.dna_center.dnac_location_map = {}
+        actual = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
+        expected = EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL
+        self.assertEqual(actual, expected)
+
     def test_parse_and_sort_locations(self):
         """Test Nautobot adapter parse_and_sort_locations method."""
-        self.dna_center.dnac_location_map = self.dna_center.build_dnac_location_map(locations=LOCATION_FIXTURE)
         actual = self.dna_center.parse_and_sort_locations(locations=LOCATION_FIXTURE)
         expected = EXPECTED_AREAS, EXPECTED_BUILDINGS, EXPECTED_FLOORS
         self.assertEqual(actual, expected)
+
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": False}})
+    def test_parse_and_sort_locations_wo_global(self):
+        """Test Nautobot adapter parse_and_sort_locations method without Global region."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL
+        actual_areas, actual_buildings, actual_floors = self.dna_center.parse_and_sort_locations(
+            locations=LOCATION_FIXTURE
+        )
+        self.assertEqual(actual_areas, EXPECTED_AREAS_WO_GLOBAL)
+        self.assertEqual(actual_buildings, EXPECTED_BUILDINGS)
+        self.assertEqual(actual_floors, EXPECTED_FLOORS)
 
     def test_load_locations_success(self):
         """Test Nautobot SSoT for Cisco DNA Center load_locations() function successfully."""
@@ -110,7 +129,6 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
             "No location data was returned from DNAC. Unable to proceed."
         )
 
-    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
     def test_load_areas_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_areas() function with Global area."""
         self.dna_center.load_areas(areas=EXPECTED_AREAS)
@@ -132,18 +150,25 @@ class TestDnaCenterAdapterTestCase(TransactionTestCase):
         area_actual = [area.get_unique_id() for area in self.dna_center.get_all("area")]
         self.assertEqual(area_actual, area_expected)
 
-    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_dna_center": {"import_global": True}})
     def test_load_buildings_w_global(self):
         """Test Nautobot SSoT for Cisco DNA Center load_buildings() function with Global area."""
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
-        building_expected = ["Building1__NY"]
+        building_expected = ["Building1__NY", "DC1__Global"]
+        building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
+        self.assertEqual(building_actual, building_expected)
+
+    def test_load_buildings_wo_global(self):
+        """Test Nautobot SSoT for Cisco DNA Center load_buildings() function without Global area."""
+        self.dna_center.dnac_location_map = EXPECTED_DNAC_LOCATION_MAP_WO_GLOBAL
+        self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
+        building_expected = ["Building1__NY", "DC1__None"]
         building_actual = [building.get_unique_id() for building in self.dna_center.get_all("building")]
         self.assertEqual(building_actual, building_expected)
 
     def test_load_floors(self):
         """Test Nautobot SSoT for Cisco DNA Center load_floors() function."""
         self.dna_center.load_floors(floors=EXPECTED_FLOORS)
-        floor_expected = ["Building1 - Floor1__Building1"]
+        floor_expected = ["Building1 - Floor1__Building1", "DC1 - Main Floor__DC1"]
         floor_actual = [floor.get_unique_id() for floor in self.dna_center.get_all("floor")]
         self.assertEqual(floor_actual, floor_expected)
 
