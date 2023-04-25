@@ -159,7 +159,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         for location in buildings:
             try:
                 self.get(self.building, location["name"])
-                self.job.log_warning(message=f"Device {location['name']} already loaded so skipping.")
+                self.job.log_warning(message=f"Building {location['name']} already loaded so skipping.")
                 continue
             except ObjectNotFound:
                 if self.job.kwargs.get("debug"):
@@ -202,23 +202,28 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             else:
                 self.job.log_warning(message=f"Parent to {location['name']} can't be found so will be skipped.")
                 continue
-            new_floor = self.floor(
-                name=f"{_building['name']} - {location['name']}",
-                building=_building["name"],
-                tenant=self.tenant.name if self.tenant else None,
-                uuid=None,
-            )
+            floor_name = f"{_building['name']} - {location['name']}"
             try:
-                self.add(new_floor)
+                self.get(self.floor, {"name": floor_name, "building": _building["name"]})
+                self.job.log_warning(message=f"Duplicate Floor {floor_name} attempting to be loaded.")
+            except ObjectNotFound:
+                new_floor = self.floor(
+                    name=floor_name,
+                    building=_building["name"],
+                    tenant=self.tenant.name if self.tenant else None,
+                    uuid=None,
+                )
                 try:
-                    parent = self.get(self.building, _building["name"])
-                    parent.add_child(new_floor)
-                except ObjectNotFound as err:
-                    self.job.log_warning(
-                        message=f"Unable to find building {_building['name']} for floor {location['name']}. {err}"
-                    )
-            except ValidationError as err:
-                self.job.log_warning(message=f"Unable to load floor {_building['name']} - {location['name']}. {err}")
+                    self.add(new_floor)
+                    try:
+                        parent = self.get(self.building, _building["name"])
+                        parent.add_child(new_floor)
+                    except ObjectNotFound as err:
+                        self.job.log_warning(
+                            message=f"Unable to find building {_building['name']} for floor {floor_name}. {err}"
+                        )
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load floor {floor_name}. {err}")
 
     def load_unassigned_building(self):
         """Create Unassigned building for Sites missing an assigned Building."""
