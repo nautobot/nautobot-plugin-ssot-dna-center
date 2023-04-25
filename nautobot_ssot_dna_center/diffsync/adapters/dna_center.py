@@ -157,31 +157,36 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             buildings (List[dict]): List of dictionaries containing location information about a building.
         """
         for location in buildings:
-            if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Loading building {location['name']}. {location}")
-            address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
-            latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
-            if location["parentId"] in self.dnac_location_map:
-                _area = (
-                    self.dnac_location_map[location["parentId"]]
-                    if location.get("parentId")
-                    else {"name": "Global", "parent": None}
-                )
-            else:
-                _area = {"name": None, "parent": None}
-            new_building = self.building(
-                name=location["name"],
-                address=address,
-                area=_area["name"],
-                latitude=latitude[:9].rstrip("0"),
-                longitude=longitude[:7].rstrip("0"),
-                tenant=self.tenant.name if self.tenant else None,
-                uuid=None,
-            )
             try:
-                self.add(new_building)
-            except ValidationError as err:
-                self.job.log_warning(message=f"Unable to load building {location['name']}. {err}")
+                self.get(self.building, location["name"])
+                self.job.log_warning(message=f"Device {location['name']} already loaded so skipping.")
+                continue
+            except ObjectNotFound:
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(message=f"Loading building {location['name']}. {location}")
+                address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
+                latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
+                if location["parentId"] in self.dnac_location_map:
+                    _area = (
+                        self.dnac_location_map[location["parentId"]]
+                        if location.get("parentId")
+                        else {"name": "Global", "parent": None}
+                    )
+                else:
+                    _area = {"name": None, "parent": None}
+                new_building = self.building(
+                    name=location["name"],
+                    address=address,
+                    area=_area["name"],
+                    latitude=latitude[:9].rstrip("0"),
+                    longitude=longitude[:7].rstrip("0"),
+                    tenant=self.tenant.name if self.tenant else None,
+                    uuid=None,
+                )
+                try:
+                    self.add(new_building)
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load building {location['name']}. {err}")
 
     def load_floors(self, floors: List[dict]):
         """Load floor data from DNAC into DiffSync model.
