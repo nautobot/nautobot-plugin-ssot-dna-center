@@ -69,10 +69,10 @@ class NautobotBuilding(base.Building):
         if attrs.get("tenant"):
             new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
         try:
-            if ids.get("area"):
-                new_site.region = Region.objects.get(name=ids["area"])
+            if attrs.get("area"):
+                new_site.region = Region.objects.get(name=attrs["area"])
         except Region.DoesNotExist:
-            diffsync.job.log_info(message=f"Unable to find parent {ids['area']}")
+            diffsync.job.log_info(message=f"Unable to find parent {attrs['area']}")
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -82,6 +82,8 @@ class NautobotBuilding(base.Building):
         self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
         if "address" in attrs:
             site.physical_address = attrs["address"]
+        if "area" in attrs:
+            site.region = Region.objects.get(name=attrs["area"])
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:

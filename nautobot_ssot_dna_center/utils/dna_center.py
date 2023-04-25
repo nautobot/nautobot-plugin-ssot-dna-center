@@ -135,18 +135,19 @@ class DnaCenterClient:
         locations = site_hier.lstrip("/").rstrip("/").split("/")
         loc_data = {
             "areas": [],
-            "building": None,
+            "building": "Unassigned",
             "floor": None,
         }
         for location in locations:
-            loc_type = location_map[location]["loc_type"]
-            loc_name = location_map[location]["name"]
-            if loc_type == "area":
-                loc_data["areas"].append(loc_name)
-            if loc_type == "building":
-                loc_data["building"] = loc_name
-            if loc_type == "floor":
-                loc_data["floor"] = loc_name
+            if location in location_map:
+                loc_type = location_map[location]["loc_type"]
+                loc_name = location_map[location]["name"]
+                if loc_type == "area":
+                    loc_data["areas"].append(loc_name)
+                if loc_type == "building":
+                    loc_data["building"] = loc_name
+                if loc_type == "floor":
+                    loc_data["floor"] = loc_name
         return loc_data
 
     def get_port_info(self, device_id: str):
