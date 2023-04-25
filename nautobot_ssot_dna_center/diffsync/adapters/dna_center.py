@@ -75,7 +75,12 @@ class LabelMixin:
         elif modelname == "port":
             _label_object(Interface.objects.get(name=model_instance.name, device__name=model_instance.device))
         elif modelname == "ipaddress":
-            _label_object(IPAddress.objects.get(address=model_instance.address))
+            _label_object(
+                IPAddress.objects.get(
+                    address=model_instance.address,
+                    interface=Interface.objects.get(device__name=model_instance.device, name=model_instance.interface),
+                )
+            )
 
 
 class DnaCenterAdapter(LabelMixin, DiffSync):
