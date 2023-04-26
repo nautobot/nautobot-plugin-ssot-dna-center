@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.8.0 (2023-04-26)
+### Feature
+* ✨ Update Job to execute sync in post_run to make it non-atomic. ([`20579ff`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/20579ff084017bb266e0a6dee2e804307c05df8a))
+* ✨ Add update_locations setting to disable updating/deleting of Sites from DNAC ([`bb6c8cb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/bb6c8cba4a48a4491dd21e3111bd3b093d2dd6c4))
+* ✨ Add setting to ignore Global Area so it's not imported. ([`1a31745`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1a31745d5f510ce48f7dd5bdcd9738b08608bc89))
+
+### Fix
+* 🐛 Ensure serial on Device is always a string, can't be None in Nautobot. ([`09fc158`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/09fc1587df421dc740ac611e4268a0171a4ea626))
+* 🐛 Add check for already loaded Building in case of duplicates in DNAC. ([`2227653`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/22276534e7bcdbb4dc8617840030d5bc300d574b))
+* 🐛 Specify Interface when finding IPAddress to update CustomFields. ([`82caba6`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/82caba64b7e88f6e580163abc45100374f64b70f))
+* 🐛 Add Tenant field to tables ([`aed644a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/aed644a345206c73a15bca960874f9e2460e0009))
+* Use is_truthy with import_global setting ([`44a2fd0`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/44a2fd07401e174217cdd442c3571e34c8ef4489))
+* ♻️ Redo code to work properly without Global area. Also added tests to validate functionality. ([`3f70ada`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/3f70ada8d87ee2b3c49682cd85fce7e27ee597c5))
+* 🐛 Add check for existing Region in create function. ([`0908b5e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/0908b5ee19d396bef8c9ba1ec7471451952dc9c3))
+* 🐛 Add check for type value being non-null ([`1d360be`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1d360be4842c1c2bd346062f0e79fbcb0b24b5c5))
+* 🐛 Add check for existing Port before loading to avoid duplicates. ([`be4d386`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/be4d386140d2471e8c51111624d9aee23dfdde6a))
+* Add handling for validating device already loaded to prevent possible duplicates. ([`690cd93`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/690cd933dcd917db2c8c1c5e35f8b682118968d6))
+* 🐛 Add check for MTU being null, set to 1500 if found. ([`6c2946f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/6c2946f022d313749ce3e6dd9e01b1655c6e50bd))
+* Have model set to Unknown if null in DNAC ([`a0c2f65`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/a0c2f65f2146bf8118cf857d69b728b61499ac23))
+* 🐛 Update get_devices to be less than, ensure offset has minimum of 1. ([`983d96e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/983d96e1a1cfdd92f3e8ed2f25ca9879bd0d1c34))
+* 🐛 Update get_locations to remove duplicate results and add pagination handling. ([`c0a6c19`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/c0a6c19e747fcb8d6b7ff9bda2896fc8ca8c258c))
+* 🐛 Add handling for more than 500 responses for getting sites and devices. ([`440342f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/440342f8a19d89151aad695f74a744959e2e3649))
+
+### Documentation
+* 📝 Update documentation with import_global setting ([`0e6c53d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/0e6c53d3cb4ffcfbe6ccb1d2839511f137d75892))
+* 📝 Add logging to notify user of errors. ([`4b0e8fa`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/4b0e8fa9aed9822465f685f5c3b944bbcb5c5c3a))
+* 📝 Add some debug logging to DNAC load functions ([`343c22c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/343c22c44b7841c8c7d9f89f6319f711ff7582b9))
+
 ## v0.7.0 (2023-04-10)
 ### Feature
 * ✨ Add support for Device Lifecycle App for software version tracking. ([`65b4551`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/65b4551f74d4449f706ec17b939df2abe503d145))
