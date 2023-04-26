@@ -2,15 +2,18 @@
 from typing import Optional, List
 from uuid import UUID
 from diffsync import DiffSyncModel
+from diffsync.enum import DiffSyncModelFlags
 
 
 class Area(DiffSyncModel):
     """DiffSync model for DNA Center areas."""
 
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
+
     _modelname = "area"
     _identifiers = ("name", "parent")
     _attributes = ()
-    _children = {"building": "buildings"}
+    _children = {}
 
     name: str
     parent: Optional[str]
@@ -22,14 +25,16 @@ class Area(DiffSyncModel):
 class Building(DiffSyncModel):
     """DiffSync model for DNA Center buildings."""
 
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
+
     _modelname = "building"
-    _identifiers = ("name", "area")
-    _attributes = ("address", "latitude", "longitude", "tenant")
+    _identifiers = ("name",)
+    _attributes = ("address", "area", "latitude", "longitude", "tenant")
     _children = {"floor": "floors"}
 
     name: str
     address: Optional[str]
-    area: str
+    area: Optional[str]
     latitude: Optional[str]
     longitude: Optional[str]
     tenant: Optional[str]
@@ -57,23 +62,21 @@ class Device(DiffSyncModel):
     """DiffSync model for DNA Center devices."""
 
     _modelname = "device"
-    _identifiers = ("name",)
+    _identifiers = ("name", "site", "serial", "management_addr")
     _attributes = (
         "status",
         "role",
         "vendor",
         "model",
         "area",
-        "site",
         "floor",
-        "serial",
         "version",
         "platform",
         "tenant",
     )
     _children = {"port": "ports"}
 
-    name: str
+    name: Optional[str]
     status: Optional[str]
     role: Optional[str]
     vendor: str
@@ -81,7 +84,7 @@ class Device(DiffSyncModel):
     area: Optional[str]
     site: Optional[str]
     floor: Optional[str]
-    serial: Optional[str]
+    serial: str = ""
     version: Optional[str]
     platform: str
     tenant: Optional[str]
@@ -95,8 +98,8 @@ class Port(DiffSyncModel):
     """DiffSync model for DNA Center interfaces."""
 
     _modelname = "port"
-    _identifiers = ("name", "device")
-    _attributes = ("description", "port_type", "port_mode", "mac_addr", "mtu", "status", "enabled")
+    _identifiers = ("name", "device", "mac_addr")
+    _attributes = ("description", "port_type", "port_mode", "mtu", "status", "enabled")
     _children = {}
 
     name: str

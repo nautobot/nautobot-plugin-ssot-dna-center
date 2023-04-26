@@ -1,22 +1,27 @@
 """Nautobot SSoT for Cisco DNA Center Adapter for DNA Center SSoT plugin."""
 from datetime import datetime
-from django.contrib.contenttypes.models import ContentType
+from typing import List
+
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from netutils.ip import netmask_to_cidr
-from nautobot.dcim.models import Region, Site, Device, Location, LocationType, Interface
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
+from nautobot.dcim.models import Device, Interface, Location, LocationType, Site
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import IPAddress
 from nautobot.tenancy.models import Tenant
+from netutils.ip import netmask_to_cidr
+
 from nautobot_ssot_dna_center.constants import DNAC_PLATFORM_MAPPER
 from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterArea,
     DnaCenterBuilding,
-    DnaCenterFloor,
     DnaCenterDevice,
-    DnaCenterPort,
+    DnaCenterFloor,
     DnaCenterIPAddress,
+    DnaCenterPort,
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
@@ -34,10 +39,10 @@ class LabelMixin:
             "label": "Last sync from DNA Center",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
-        for model in [Region, Site, Location, Device, Interface, IPAddress]:
+        for model in [Site, Location, Device, Interface, IPAddress]:
             custom_field.content_types.add(ContentType.objects.get_for_model(model))
 
-        for modelname in ["area", "building", "floor", "device", "port", "ipaddress"]:
+        for modelname in ["building", "floor", "device", "port", "ipaddress"]:
             for local_instance in self.get_all(modelname):
                 unique_id = local_instance.get_unique_id()
                 # Verify that the object now has a counterpart in the target DiffSync
@@ -59,9 +64,7 @@ class LabelMixin:
             nautobot_object.custom_field_data["system_of_record"] = "DNA Center"
             nautobot_object.validated_save()
 
-        if modelname == "area":
-            _label_object(Region.objects.get(name=model_instance.name))
-        elif modelname == "building":
+        if modelname == "building":
             _label_object(Site.objects.get(name=model_instance.name))
         elif modelname == "floor":
             _label_object(
@@ -72,7 +75,12 @@ class LabelMixin:
         elif modelname == "port":
             _label_object(Interface.objects.get(name=model_instance.name, device__name=model_instance.device))
         elif modelname == "ipaddress":
-            _label_object(IPAddress.objects.get(address=model_instance.address))
+            _label_object(
+                IPAddress.objects.get(
+                    address=model_instance.address,
+                    interface=Interface.objects.get(device__name=model_instance.device, name=model_instance.interface),
+                )
+            )
 
 
 class DnaCenterAdapter(LabelMixin, DiffSync):
@@ -85,7 +93,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
     port = DnaCenterPort
     ipaddress = DnaCenterIPAddress
 
-    top_level = ["area", "device", "ipaddress"]
+    top_level = ["area", "building", "device", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, tenant: Tenant, **kwargs):
         """Initialize DNA Center.
@@ -110,28 +118,62 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             # to ensure we process locations in the appropriate order we need to split them into their own list of locations
             self.dnac_location_map = self.build_dnac_location_map(locations)
             areas, buildings, floors = self.parse_and_sort_locations(locations)
-            for location in areas:
-                address = ""
-                if location.get("parentId"):
-                    self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]][
-                        "name"
-                    ]
-                if location.get("additionalInfo"):
-                    address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
-                new_area = self.area(
-                    name=location["name"],
-                    parent=self.dnac_location_map[location["parentId"]]["name"] if location.get("parentId") else None,
-                    uuid=None,
-                )
+            self.load_areas(areas)
+            self.load_buildings(buildings)
+            self.load_floors(floors)
+        else:
+            self.job.log_failure("No location data was returned from DNAC. Unable to proceed.")
+
+    def load_areas(self, areas: List[dict]):
+        """Load areas from DNAC into DiffSync model.
+
+        Args:
+            areas (List[dict]): List of dictionaries containing location information about a building.
+        """
+        for location in areas:
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
+                if location["name"] == "Global":
+                    continue
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Loading area {location['name']}. {location}")
+            parent_name = None
+            if location.get("parentId") and location["parentId"] in self.dnac_location_map:
+                parent_name = self.dnac_location_map[location["parentId"]]["name"]
+                self.dnac_location_map[location["id"]]["parent"] = parent_name
+            new_area = self.area(
+                name=location["name"],
+                parent=parent_name,
+                uuid=None,
+            )
+            try:
                 self.add(new_area)
-            for location in buildings:
+            except ValidationError as err:
+                self.job.log_warning(message=f"Unable to load area {location['name']}. {err}")
+
+    def load_buildings(self, buildings: List[dict]):
+        """Load building data from DNAC into DiffSync model.
+
+        Args:
+            buildings (List[dict]): List of dictionaries containing location information about a building.
+        """
+        for location in buildings:
+            try:
+                self.get(self.building, location["name"])
+                self.job.log_warning(message=f"Building {location['name']} already loaded so skipping.")
+                continue
+            except ObjectNotFound:
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(message=f"Loading building {location['name']}. {location}")
                 address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
                 latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
-                _area = (
-                    self.dnac_location_map[location["parentId"]]
-                    if location.get("parentId")
-                    else {"name": "Global", "parent": None}
-                )
+                if location["parentId"] in self.dnac_location_map:
+                    _area = (
+                        self.dnac_location_map[location["parentId"]]
+                        if location.get("parentId")
+                        else {"name": "Global", "parent": None}
+                    )
+                else:
+                    _area = {"name": None, "parent": None}
                 new_building = self.building(
                     name=location["name"],
                     address=address,
@@ -141,42 +183,78 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     tenant=self.tenant.name if self.tenant else None,
                     uuid=None,
                 )
-                self.add(new_building)
                 try:
-                    parent = self.get(self.area, {"name": _area["name"], "parent": _area["parent"]})
-                    parent.add_child(new_building)
-                except ObjectNotFound as err:
-                    self.job.log_warning(
-                        message=f"Unable to find area {_area['name']} for building {location['name']}. {err}"
-                    )
-            for location in floors:
-                _building = self.dnac_location_map[location["parentId"]] if location.get("parentId") else {}
+                    self.add(new_building)
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load building {location['name']}. {err}")
+
+    def load_floors(self, floors: List[dict]):
+        """Load floor data from DNAC into DiffSync model.
+
+        Args:
+            floors (List[dict]): List of dictionaries containing location information about a floor.
+        """
+        for location in floors:
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Loading floor {location['name']}. {location}")
+            if location["parentId"] in self.dnac_location_map:
+                _building = self.dnac_location_map[location["parentId"]]
+            else:
+                self.job.log_warning(message=f"Parent to {location['name']} can't be found so will be skipped.")
+                continue
+            floor_name = f"{_building['name']} - {location['name']}"
+            try:
+                self.get(self.floor, {"name": floor_name, "building": _building["name"]})
+                self.job.log_warning(message=f"Duplicate Floor {floor_name} attempting to be loaded.")
+            except ObjectNotFound:
                 new_floor = self.floor(
-                    name=f"{_building['name']} - {location['name']}",
+                    name=floor_name,
                     building=_building["name"],
                     tenant=self.tenant.name if self.tenant else None,
                     uuid=None,
                 )
-                self.add(new_floor)
                 try:
-                    parent = self.get(self.building, {"name": _building["name"], "area": _building["parent"]})
-                    parent.add_child(new_floor)
-                except ObjectNotFound as err:
-                    self.job.log_warning(
-                        message=f"Unable to find building {_building['name']} in area {_building['parent']} for floor {location['name']}. {err}"
-                    )
+                    self.add(new_floor)
+                    try:
+                        parent = self.get(self.building, _building["name"])
+                        parent.add_child(new_floor)
+                    except ObjectNotFound as err:
+                        self.job.log_warning(
+                            message=f"Unable to find building {_building['name']} for floor {floor_name}. {err}"
+                        )
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load floor {floor_name}. {err}")
 
-    def parse_and_sort_locations(self, locations: list):
+    def load_unassigned_building(self):
+        """Create Unassigned building for Sites missing an assigned Building."""
+        try:
+            self.get(self.building, {"name": "Unassigned", "area": None})
+        except ObjectNotFound:
+            new_building = self.building(
+                name="Unassigned",
+                address=None,
+                area=None,
+                latitude=None,
+                longitude=None,
+                tenant=self.tenant.name if self.tenant else None,
+                uuid=None,
+            )
+            self.add(new_building)
+
+    def parse_and_sort_locations(self, locations: List[dict]):
         """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
 
         Args:
-            locations (list): List of Locations (Sites) from DNAC to be separated.
+            locations (List[dict]): List of Locations (Sites) from DNAC to be separated.
 
         Returns:
             tuple (List[dict], List[dict], List[dict]): Tuple containing lists of areas, buildings, and floors in DNAC to be processed.
         """
         areas, buildings, floors = [], [], []
         for location in locations:
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
+                if location["name"] == "Global":
+                    continue
             for info in location["additionalInfo"]:
                 if info["attributes"].get("type") == "building":
                     buildings.append(location)
@@ -188,32 +266,35 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     break
             else:
                 areas.append(location)
-            if location.get("parentId"):
+            if location.get("parentId") and location["parentId"] in self.dnac_location_map:
                 self.dnac_location_map[location["id"]]["parent"] = self.dnac_location_map[location["parentId"]]["name"]
+            else:
+                self.dnac_location_map[location["id"]]["parent"] = None
         # sort areas by length of siteHierarchy so that parent areas loaded before child areas.
         areas = sorted(areas, key=lambda x: len(x["siteHierarchy"].split("/")))
         return areas, buildings, floors
 
-    def build_dnac_location_map(self, locations: list):
+    def build_dnac_location_map(self, locations: List[dict]):
         """Build out the initial DNAC location map for Location ID to name and type.
 
         Args:
-            locations (list): List of Locations (Sites) from DNAC.
+            locations (List[dict]): List of Locations (Sites) from DNAC.
 
         Returns:
             dict: Dictionary of Locations mapped with ID to their name and location type.
         """
-        return {loc["id"]: {"name": loc["name"], "parent": None, "loc_type": "area"} for loc in locations}
+        location_map = {}
+        for loc in locations:
+            if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
+                if loc["name"] == "Global":
+                    continue
+            location_map[loc["id"]] = {"name": loc["name"], "parent": None, "loc_type": "area"}
+        return location_map
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
         devices = self.conn.get_devices()
         for dev in devices:
-            if not dev.get("hostname"):
-                self.job.log_warning(
-                    message=f"Device found in DNAC without hostname so will be skipped. Ref device ID: {dev['id']}"
-                )
-                continue
             platform = "unknown"
             vendor = "Cisco"
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
@@ -221,77 +302,119 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             else:
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     platform = "meraki"
-            if "Juniper" in dev["type"]:
+            if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
             dev_details = self.conn.get_device_detail(dev_id=dev["id"])
+            loc_data = {}
             if dev_details and dev_details.get("siteHierarchyGraphId"):
                 loc_data = self.conn.parse_site_hierarchy(
                     location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
                 )
-            else:
-                self.job.log_warning(message=f"Unable to find Site for {dev['hostname']} so skipping.")
-                continue
-            new_dev = self.device(
-                name=dev["hostname"],
-                status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
-                role=dev["role"],
-                vendor=vendor,
-                model=dev["platformId"],
-                area=loc_data["areas"][-1],
-                site=loc_data["building"],
-                floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
-                serial=dev.get("serialNumber"),
-                version=dev.get("softwareVersion"),
-                platform=platform,
-                tenant=self.tenant.name if self.tenant else None,
-                management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
-                uuid=None,
-            )
-            self.add(new_dev)
-            self.load_ports(device_id=dev["id"], device_name=dev["hostname"])
+            if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
+                self.job.log_info(message="Loading Unassigned building for devices missing a Site.")
+                self.load_unassigned_building()
+                if loc_data.get("building") != "Unassigned":
+                    loc_data["building"] = "Unassigned"
+            try:
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(
+                        message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
+                    )
+                device_found = self.get(
+                    self.device,
+                    {
+                        "name": dev["hostname"],
+                        "site": loc_data["building"],
+                        "serial": dev["serialNumber"],
+                        "management_addr": dev["managementIpAddress"],
+                    },
+                )
+                if device_found:
+                    self.job.log_warning(
+                        message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']}"
+                    )
+                    continue
+            except ObjectNotFound:
+                new_dev = self.device(
+                    name=dev["hostname"],
+                    status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
+                    role=dev["role"],
+                    vendor=vendor,
+                    model=dev["platformId"] if dev.get("platformId") else "Unknown",
+                    area=loc_data["areas"][-1] if loc_data.get("areas") else None,
+                    site=loc_data["building"],
+                    floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
+                    serial=dev["serialNumber"] if dev.get("serialNumber") else "",
+                    version=dev.get("softwareVersion"),
+                    platform=platform,
+                    tenant=self.tenant.name if self.tenant else None,
+                    management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
+                    uuid=None,
+                )
+                try:
+                    self.add(new_dev)
+                    self.load_ports(device_id=dev["id"], dev=new_dev)
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
 
-    def load_ports(self, device_id: str, device_name: str):
+    def load_ports(self, device_id: str, dev: DnaCenterDevice):
         """Load port info from DNAC into Port DiffSyncModel.
 
         Args:
             device_id (str): ID for Device in DNAC to retrieve ports for.
-            device_name (str): Name of Device associated with ports.
+            dev (DnaCenterDevice): Device associated with ports.
         """
-        try:
-            device = self.get(self.device, device_name)
-            ports = self.conn.get_port_info(device_id=device_id)
-            for port in ports:
+        ports = self.conn.get_port_info(device_id=device_id)
+        for port in ports:
+            try:
+                found_port = self.get(
+                    self.port,
+                    {
+                        "name": port["portName"],
+                        "device": dev.name,
+                        "mac_addr": port["macAddress"].upper() if port.get("macAddress") else None,
+                    },
+                )
+                if found_port:
+                    self.job.log_warning(
+                        message=f"Duplicate port attempting to be loaded, {port['portName']} for {dev.name}"
+                    )
+                continue
+            except ObjectNotFound:
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(message=f"Loading port {port['portName']} for {dev.name}. {port}")
                 port_type = self.conn.get_port_type(port_info=port)
                 port_status = self.conn.get_port_status(port_info=port)
                 new_port = self.port(
                     name=port["portName"],
-                    device=device_name,
+                    device=dev.name if dev.name else "",
                     description=port["description"],
                     enabled=True if port["adminStatus"] == "UP" else False,
                     port_type=port_type,
                     port_mode="tagged" if port["portMode"] == "trunk" else "access",
                     mac_addr=port["macAddress"].upper() if port.get("macAddress") else None,
-                    mtu=port["mtu"],
+                    mtu=port["mtu"] if port.get("mtu") else 1500,
                     status=port_status,
                     uuid=None,
                 )
-                self.add(new_port)
-                device.add_child(new_port)
+                try:
+                    self.add(new_port)
+                    dev.add_child(new_port)
 
-                if port.get("addresses"):
-                    for addr in port["addresses"]:
-                        if addr["address"]["ipAddress"]["address"] == device.management_addr:
-                            primary = True
-                        else:
-                            primary = False
-                        self.load_ip_address(
-                            device_name=device_name,
-                            interface=port["portName"],
-                            address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
-                            primary=primary,
-                        )
-        except ObjectNotFound as err:
-            self.job.log_warning(message=f"Unable to find Device {device_name} to assign Ports to so skipping. {err}")
+                    if port.get("addresses"):
+                        for addr in port["addresses"]:
+                            if addr["address"]["ipAddress"]["address"] == dev.management_addr:
+                                primary = True
+                            else:
+                                primary = False
+                            self.load_ip_address(
+                                device_name=dev.name if dev.name else "",
+                                interface=port["portName"],
+                                address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
+                                primary=primary,
+                            )
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
     def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
@@ -303,8 +426,14 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             primary (bool): Whether the IP Address is the primary IP for the Device.
         """
         try:
-            self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
+            ip_found = self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
+            if ip_found:
+                self.job.log_warning(
+                    message=f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
+                )
         except ObjectNotFound:
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Loading IP Address {address} for {device_name} on {interface}.")
             new_ip = self.ipaddress(
                 address=address,
                 device=device_name,

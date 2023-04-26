@@ -16,10 +16,10 @@ class NautobotSsotDnaCenterConfig(PluginConfig):
     author = "Justin Drew"
     description = "Nautobot SSoT for Cisco DNA Center."
     base_url = "ssot-dna-center"
-    required_settings = []
+    required_settings = ["import_global", "update_locations"]
     min_version = "1.4.0"
     max_version = "1.9999"
-    default_settings = {}
+    default_settings = {"import_global": True, "update_locations": True}
     caching_config = {}
 
     def ready(self):
