@@ -26,11 +26,16 @@ Once installed, the plugin needs to be enabled in your `nautobot_config.py`
 # In your nautobot_config.py
 PLUGINS = ["nautobot_ssot", "nautobot_ssot_dna_center"]
 
-# PLUGINS_CONFIG = {
-#   "nautobot_ssot_dna_center": {
-#     ADD YOUR SETTINGS HERE
-#   }
-# }
+PLUGINS_CONFIG = {
+    "nautobot_ssot": {
+        "hide_example_jobs": True,
+    },
+    "nautobot_ssot_dna_center": {
+        "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
+        "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
+    },
+}
+
 ```
 
 The plugin behavior can be controlled with the following list of settings

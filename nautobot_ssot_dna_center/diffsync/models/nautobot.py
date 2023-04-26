@@ -1,5 +1,6 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
     Device,
@@ -35,24 +36,21 @@ class NautobotArea(base.Area):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
-        diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
-        new_region = Region(
-            name=ids["name"],
-        )
-        if ids.get("parent"):
-            try:
-                new_region.parent = Region.objects.get(name=ids["parent"])
-            except Region.DoesNotExist as err:
-                diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
-        new_region.validated_save()
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
-
-    def delete(self):
-        """Delete Region in Nautobot from Area object."""
-        region = Region.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Region {region.name}.")
-        self.diffsync.objects_to_delete["regions"].append(region)
-        return self
+        try:
+            Region.objects.get(name=ids["name"])
+            diffsync.job.log_warning(message=f"Region {ids['name']} already exists so won't be created.")
+        except Region.DoesNotExist:
+            diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
+            new_region = Region(
+                name=ids["name"],
+            )
+            if ids.get("parent"):
+                try:
+                    new_region.parent = Region.objects.get(name=ids["parent"])
+                except Region.DoesNotExist as err:
+                    diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
+            new_region.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
 
 class NautobotBuilding(base.Building):
@@ -72,19 +70,26 @@ class NautobotBuilding(base.Building):
         if attrs.get("tenant"):
             new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
         try:
-            if ids.get("area"):
-                new_site.region = Region.objects.get(name=ids["area"])
+            if attrs.get("area"):
+                new_site.region = Region.objects.get(name=attrs["area"])
         except Region.DoesNotExist:
-            diffsync.job.log_info(message=f"Unable to find parent {ids['area']}")
+            diffsync.job.log_info(message=f"Unable to find parent {attrs['area']}")
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update Site in Nautobot from Building object."""
+        if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("update_locations"):
+            self.diffsync.job.log_warning(
+                message=f"`update_locations` setting is disabled so will skip updating {self.name}."
+            )
+            return None
         site = Site.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
         if "address" in attrs:
             site.physical_address = attrs["address"]
+        if "area" in attrs:
+            site.region = Region.objects.get(name=attrs["area"])
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
@@ -99,6 +104,11 @@ class NautobotBuilding(base.Building):
 
     def delete(self):
         """Delete Site in Nautobot from Building object."""
+        if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("update_locations"):
+            self.diffsync.job.log_warning(
+                message=f"`update_locations` setting is disabled so will skip deleting {self.name}."
+            )
+            return None
         site = Site.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
         self.diffsync.objects_to_delete["sites"].append(site)
@@ -159,7 +169,7 @@ class NautobotDevice(base.Device):
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
         diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
-        site = Site.objects.get(name=attrs["site"])
+        site = Site.objects.get(name=ids["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
@@ -171,7 +181,7 @@ class NautobotDevice(base.Device):
             device_role=device_role,
             site=site,
             device_type=device_type,
-            serial=attrs["serial"],
+            serial=ids["serial"],
             platform_id=platform.id,
         )
         if attrs.get("floor"):
@@ -274,7 +284,7 @@ class NautobotPort(base.Port):
             enabled=attrs["enabled"],
             type=attrs["port_type"],
             mode=attrs["port_mode"],
-            mac_address=attrs["mac_addr"],
+            mac_address=ids["mac_addr"],
             mtu=attrs["mtu"],
             status=Status.objects.get(slug=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
@@ -292,8 +302,6 @@ class NautobotPort(base.Port):
             port.type = attrs["port_type"]
         if "port_mode" in attrs:
             port.mode = attrs["port_mode"]
-        if "mac_addr" in attrs:
-            port.mac_address = attrs["mac_addr"]
         if "mtu" in attrs:
             port.mtu = attrs["mtu"]
         if "status" in attrs:

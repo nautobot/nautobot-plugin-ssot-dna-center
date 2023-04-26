@@ -41,7 +41,7 @@ class NautobotAdapter(DiffSync):
     port = NautobotPort
     ipaddress = NautobotIPAddress
 
-    top_level = ["area", "device", "ipaddress"]
+    top_level = ["area", "building", "device", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -57,7 +57,7 @@ class NautobotAdapter(DiffSync):
 
     def load_regions(self):
         """Load Region data from Nautobt into DiffSync models."""
-        for region in OrmRegion.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        for region in OrmRegion.objects.all():
             try:
                 self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
                 self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
@@ -71,7 +71,7 @@ class NautobotAdapter(DiffSync):
 
     def load_sites(self):
         """Load Site data from Nautobot into DiffSync models."""
-        for site in OrmSite.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        for site in OrmSite.objects.all():
             try:
                 self.get(self.building, {"name": site.name, "area": site.region.name if site.region else None})
             except ObjectNotFound:
@@ -85,14 +85,6 @@ class NautobotAdapter(DiffSync):
                     uuid=site.id,
                 )
                 self.add(new_building)
-                try:
-                    area = self.get(
-                        self.area,
-                        {"name": site.region.name, "parent": site.region.parent.name if site.region.parent else None},
-                    )
-                    area.add_child(new_building)
-                except ObjectNotFound as err:
-                    self.job.log_warning(message=f"Unable to load area {site.region.name} for {site.name}. {err}")
 
     def load_floors(self):
         """Load LocationType floors from Nautobot into DiffSync models."""
@@ -111,9 +103,7 @@ class NautobotAdapter(DiffSync):
                 self.add(new_floor)
                 try:
                     if location.site:
-                        building = self.get(
-                            self.building, {"name": location.site.name, "area": location.site.region.name}
-                        )
+                        building = self.get(self.building, location.site.name)
                         building.add_child(new_floor)
                 except ObjectNotFound as err:
                     self.job.log_warning(
@@ -170,7 +160,15 @@ class NautobotAdapter(DiffSync):
                 uuid=port.id,
             )
             self.add(new_port)
-            device = self.get(self.device, port.device.name)
+            device = self.get(
+                self.device,
+                {
+                    "name": port.device.name,
+                    "site": port.device.site.name,
+                    "serial": port.device.serial,
+                    "management_addr": port.device.primary_ip.host if port.device.primary_ip else "",
+                },
+            )
             device.add_child(new_port)
 
     def load_ipaddresses(self):

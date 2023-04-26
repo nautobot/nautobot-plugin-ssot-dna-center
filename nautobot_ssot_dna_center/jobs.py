@@ -88,5 +88,18 @@ class DnaCenterDataSource(DataSource, Job):
         self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
         self.target_adapter.load()
 
+    def execute_sync(self):
+        """Execute the synchronization of data from DNA Center to Nautobot."""
+
+    def post_run(self):
+        """Execute sync after Job is complete so the transactions are not atomic."""
+        if not self.kwargs["dry_run"]:
+            self.log_info(message="Beginning synchronization of data from DNA Center into Nautobot.")
+            if self.source_adapter is not None and self.target_adapter is not None:
+                self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
+            else:
+                self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
+        self.log_info(message="Synchronization from DNA Center into Nautobot is complete.")
+
 
 jobs = [DnaCenterDataSource]

@@ -50,7 +50,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.job.log_info = MagicMock()
         self.nb_adapter.job.log_warning = MagicMock()
 
-    def build_nautobot_objects(self):  # pylint: disable=too-many-locals
+    def build_nautobot_objects(self):  # pylint: disable=too-many-locals, too-many-statements
         """Build out Nautobot objects to test loading."""
         global_region = Region.objects.create(name="Global", slug="global")
         global_region.custom_field_data["system_of_record"] = "DNA Center"
@@ -88,6 +88,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_type=csr_devicetype,
             device_role=leaf_role,
             platform=ios_platform,
+            serial="FCW2214L0VK",
         )
         leaf1_dev.custom_field_data["system_of_record"] = "DNA Center"
         leaf2_dev = Device.objects.create(
@@ -98,6 +99,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_type=csr_devicetype,
             device_role=leaf_role,
             platform=ios_platform,
+            serial="FCW2214L0UZ",
         )
         leaf2_dev.custom_field_data["system_of_record"] = "DNA Center"
         spine1_dev = Device.objects.create(
@@ -108,25 +110,65 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             device_type=csr_devicetype,
             device_role=spine_role,
             platform=ios_platform,
+            serial="FCW2212D05S",
         )
         spine1_dev.custom_field_data["system_of_record"] = "DNA Center"
         spine1_dev.validated_save()
 
+        meraki_ap = Device.objects.create(
+            name="",
+            site=self.hq_site,
+            location=self.floor_loc,
+            status=self.status_active,
+            device_type=DeviceType.objects.create(model="MR42", manufacturer=cisco_manu),
+            device_role=DeviceRole.objects.create(name="UNKNOWN", slug="unknown"),
+            platform=Platform.objects.create(name="meraki", slug="meraki", napalm_driver="meraki"),
+            serial="R3JE-OYG4-RCDE",
+        )
+        meraki_ap.custom_field_data["system_of_record"] = "DNA Center"
+        meraki_ap.validated_save()
+
         leaf1_mgmt = Interface.objects.create(
-            device=leaf1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=leaf1_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f1",
         )
         leaf1_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         leaf1_mgmt.validated_save()
         leaf2_mgmt = Interface.objects.create(
-            device=leaf2_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=leaf2_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f2",
         )
         leaf2_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         leaf2_mgmt.validated_save()
         spine1_mgmt = Interface.objects.create(
-            device=spine1_dev, name="Management", status=self.status_active, mtu=1500, type="virtual"
+            device=spine1_dev,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f3",
         )
         spine1_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         spine1_mgmt.validated_save()
+
+        ap_mgmt = Interface.objects.create(
+            device=meraki_ap,
+            name="Management",
+            status=self.status_active,
+            mtu=1500,
+            type="virtual",
+            mac_address="aa:bb:cc:dd:ee:f4",
+        )
+        ap_mgmt.custom_field_data["system_of_record"] = "DNA Center"
+        ap_mgmt.validated_save()
 
         leaf1_ip = IPAddress.objects.create(
             address="10.10.10.1/24",
@@ -158,6 +200,19 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         spine1_ip.custom_field_data["system_of_record"] = "DNA Center"
         spine1_ip.validated_save()
+        spine1_mgmt.device.primary_ip4 = spine1_ip
+        spine1_mgmt.device.validated_save()
+
+        ap_ip = IPAddress.objects.create(
+            address="10.10.13.1/24",
+            status=self.status_active,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object_id=ap_mgmt.id,
+        )
+        ap_ip.custom_field_data["system_of_record"] = "DNA Center"
+        ap_ip.validated_save()
+        ap_mgmt.device.primary_ip4 = ap_ip
+        ap_mgmt.device.validated_save()
 
     def test_data_loading(self):
         """Test the load() function."""
@@ -168,7 +223,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("area")),
         )
         self.assertEqual(
-            ["HQ__NY"],
+            ["HQ"],
             sorted(site.get_unique_id() for site in self.nb_adapter.get_all("building")),
         )
         self.assertEqual(
@@ -176,11 +231,21 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("floor")),
         )
         self.assertEqual(
-            ["leaf1.abc.inc", "leaf2.abc.inc", "spine1.abc.in"],
+            [
+                "__HQ__R3JE-OYG4-RCDE__10.10.13.1",
+                "leaf1.abc.inc__HQ__FCW2214L0VK__10.10.10.1",
+                "leaf2.abc.inc__HQ__FCW2214L0UZ__10.10.11.1",
+                "spine1.abc.in__HQ__FCW2212D05S__10.10.12.1",
+            ],
             sorted(dev.get_unique_id() for dev in self.nb_adapter.get_all("device")),
         )
         self.assertEqual(
-            ["Management__leaf1.abc.inc", "Management__leaf2.abc.inc", "Management__spine1.abc.in"],
+            [
+                "Management____AA:BB:CC:DD:EE:F4",
+                "Management__leaf1.abc.inc__AA:BB:CC:DD:EE:F1",
+                "Management__leaf2.abc.inc__AA:BB:CC:DD:EE:F2",
+                "Management__spine1.abc.in__AA:BB:CC:DD:EE:F3",
+            ],
             sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
         )
         self.assertEqual(
@@ -188,6 +253,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
                 "10.10.10.1/24__leaf1.abc.inc__Management",
                 "10.10.11.1/24__leaf2.abc.inc__Management",
                 "10.10.12.1/24__spine1.abc.in__Management",
+                "10.10.13.1/24____Management",
             ],
             sorted(ipaddr.get_unique_id() for ipaddr in self.nb_adapter.get_all("ipaddress")),
         )
@@ -198,25 +264,6 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load()
         self.nb_adapter.load_regions()
         self.nb_adapter.job.log_warning.assert_called_with(message="Region NY already loaded so skipping duplicate.")
-
-    @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmSite")
-    def test_load_sites_failure(self, mock_sites):
-        """Test the load_sites method failing with missing Area."""
-        mock_site = MagicMock()
-        mock_site.name = "Test"
-        mock_site.region = MagicMock()
-        mock_site.region.name = "Missing"
-        mock_site.region.parent = None
-        mock_site.physical_address = "123 Main St"
-        mock_site.latitude = 42.654321
-        mock_site.longitude = -71.345678
-        mock_site.tenant = None
-        mock_site.id = uuid.uuid4()
-        mock_sites.objects.filter.return_value = [mock_site]
-        self.nb_adapter.get = MagicMock()
-        self.nb_adapter.get.side_effect = [ObjectNotFound(), ObjectNotFound()]
-        self.nb_adapter.load_sites()
-        self.nb_adapter.job.log_warning.assert_called_once_with(message="Unable to load area Missing for Test. ")
 
     def test_load_floors_missing_location_type(self):
         """Test the load_floors method failing with missing Location Type."""
@@ -240,7 +287,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.get = MagicMock()
         self.nb_adapter.get.side_effect = [ObjectNotFound()]
         self.nb_adapter.load_floors()
-        self.nb_adapter.job.log_warning.assert_called_once_with(
+        self.nb_adapter.job.log_warning.assert_called_with(
             message="Unable to load building Missing for floor HQ - Floor 1. "
         )
 

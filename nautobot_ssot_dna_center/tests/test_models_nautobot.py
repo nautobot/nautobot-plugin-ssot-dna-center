@@ -54,20 +54,6 @@ class TestNautobotArea(TransactionTestCase):
             message="Unable to find Region USA for TX. Region matching query does not exist."
         )
 
-    def test_delete(self):
-        """Validate the NautobotArea delete() method deletes a Region."""
-        ds_mock_region = MagicMock(spec=Region)
-        ds_mock_region.uuid = "1234567890"
-        ds_mock_region.diffsync = MagicMock()
-        ds_mock_region.diffsync.job.log_info = MagicMock()
-        mock_region = MagicMock(spec=Region)
-        mock_region.name = "Test"
-        region_get_mock = MagicMock(return_value=mock_region)
-        with patch.object(Region.objects, "get", region_get_mock):
-            result = NautobotArea.delete(ds_mock_region)
-        ds_mock_region.diffsync.job.log_info.assert_called_once_with(message="Deleting Region Test.")
-        self.assertEqual(ds_mock_region, result)
-
 
 class TestNautobotBuilding(TransactionTestCase):
     """Test the NautobotBuilding class."""
@@ -92,8 +78,8 @@ class TestNautobotBuilding(TransactionTestCase):
 
     def test_create_wo_parent(self):
         """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
-        ids = {"name": "HQ", "area": "NY"}
-        attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
+        ids = {"name": "HQ"}
+        attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.log_info.assert_called_with(message="Unable to find parent NY")
@@ -104,15 +90,15 @@ class TestNautobotBuilding(TransactionTestCase):
 
     def test_create_w_parent(self):
         """Validate the NautobotBuilding create() method creates a Site with a matching parent Region."""
-        ids = {"name": "HQ", "area": "NY"}
-        attrs = {"address": "123 Main St", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
+        ids = {"name": "HQ"}
+        attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
         ny_area = Region.objects.create(name="NY", slug="ny")
         ny_area.validated_save()
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.log_info.assert_called_once_with(message="Creating Site HQ.")
         site_obj = Site.objects.get(name=ids["name"])
-        self.assertEqual(site_obj.region.name, ids["area"])
+        self.assertEqual(site_obj.region.name, attrs["area"])
         self.assertEqual(site_obj.physical_address, attrs["address"])
         self.assertEqual(site_obj.tenant.name, attrs["tenant"])
 
@@ -268,14 +254,17 @@ class TestNautobotDevice(TransactionTestCase):
         Tenant.objects.create(name="G&A")
 
         self.status_active = Status.objects.get(name="Active")
-        self.ids = {"name": "core-router.testexample.com"}
+        self.ids = {
+            "name": "core-router.testexample.com",
+            "site": "HQ",
+            "serial": "1234567890",
+            "management_addr": "10.10.0.1",
+        }
         self.attrs = {
             "floor": "HQ - Floor 1",
             "model": "Nexus 9300",
             "platform": "cisco_ios",
             "role": "core",
-            "serial": "1234567890",
-            "site": "HQ",
             "status": "Active",
             "tenant": "G&A",
             "vendor": "Cisco",
@@ -301,7 +290,7 @@ class TestNautobotDevice(TransactionTestCase):
             ),
         )
         self.assertEqual(new_dev.platform, Platform.objects.get(slug=self.attrs["platform"]))
-        self.assertEqual(new_dev.serial, self.attrs["serial"])
+        self.assertEqual(new_dev.serial, self.ids["serial"])
         self.assertTrue(new_dev.location)
         self.assertEqual(new_dev.location.name, self.attrs["floor"])
         self.assertEqual(new_dev.tenant.name, self.attrs["tenant"])

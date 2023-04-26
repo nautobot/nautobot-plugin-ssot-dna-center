@@ -43,9 +43,17 @@ class DnaCenterClient:
         Returns:
             list: List of Locations (Sites) from DNAC.
         """
-        locations = []
+        locations, loc_data, loc_names = [], [], []
         try:
-            locations = self.conn.sites.get_site()["response"]
+            total_num_sites = self.conn.sites.get_site_count()["response"]
+            offset = 1
+            while len(loc_data) < total_num_sites:
+                loc_data.extend(self.conn.sites.get_site(offset=offset)["response"])
+                offset = len(loc_data)
+            for _, item in enumerate(loc_data):
+                if item["siteNameHierarchy"] not in loc_names:
+                    loc_names.append(item["siteNameHierarchy"])
+                    locations.append(item)
         except dnacentersdkException as err:
             LOGGER.error("Unable to get site information from DNA Center. %s", err)
         return locations
@@ -88,9 +96,11 @@ class DnaCenterClient:
 
     def get_devices(self):
         """Retrieve all Device data from DNA Center."""
-        dev_list = {}
+        dev_list = []
         try:
-            dev_list = self.conn.devices.get_device_list()["response"]
+            total_num_devs = self.conn.devices.get_device_count()["response"]
+            while len(dev_list) < total_num_devs:
+                dev_list.extend(self.conn.devices.get_device_list(offset=len(dev_list) + 1)["response"])
         except dnacentersdkException as err:
             LOGGER.error("Unable to get device information from DNA Center. %s", err)
         return dev_list
@@ -125,18 +135,19 @@ class DnaCenterClient:
         locations = site_hier.lstrip("/").rstrip("/").split("/")
         loc_data = {
             "areas": [],
-            "building": None,
+            "building": "Unassigned",
             "floor": None,
         }
         for location in locations:
-            loc_type = location_map[location]["loc_type"]
-            loc_name = location_map[location]["name"]
-            if loc_type == "area":
-                loc_data["areas"].append(loc_name)
-            if loc_type == "building":
-                loc_data["building"] = loc_name
-            if loc_type == "floor":
-                loc_data["floor"] = loc_name
+            if location in location_map:
+                loc_type = location_map[location]["loc_type"]
+                loc_name = location_map[location]["name"]
+                if loc_type == "area":
+                    loc_data["areas"].append(loc_name)
+                if loc_type == "building":
+                    loc_data["building"] = loc_name
+                if loc_type == "floor":
+                    loc_data["floor"] = loc_name
         return loc_data
 
     def get_port_info(self, device_id: str):
