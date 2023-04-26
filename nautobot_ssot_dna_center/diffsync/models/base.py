@@ -84,7 +84,7 @@ class Device(DiffSyncModel):
     area: Optional[str]
     site: Optional[str]
     floor: Optional[str]
-    serial: Optional[str]
+    serial: str = ""
     version: Optional[str]
     platform: str
     tenant: Optional[str]
