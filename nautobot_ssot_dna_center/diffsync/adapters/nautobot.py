@@ -160,15 +160,7 @@ class NautobotAdapter(DiffSync):
                 uuid=port.id,
             )
             self.add(new_port)
-            device = self.get(
-                self.device,
-                {
-                    "name": port.device.name,
-                    "site": port.device.site.name,
-                    "serial": port.device.serial,
-                    "management_addr": port.device.primary_ip.host if port.device.primary_ip else "",
-                },
-            )
+            device = self.get(self.device, port.device.name)
             device.add_child(new_port)
 
     def load_ipaddresses(self):
