@@ -139,7 +139,6 @@ class NautobotAdapter(DiffSync):
                 version=version,
                 platform=dev.platform.slug if dev.platform else "",
                 tenant=dev.tenant.name if dev.tenant else None,
-                management_addr=dev.primary_ip.host if dev.primary_ip else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
