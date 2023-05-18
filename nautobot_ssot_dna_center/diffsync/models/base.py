@@ -62,8 +62,11 @@ class Device(DiffSyncModel):
     """DiffSync model for DNA Center devices."""
 
     _modelname = "device"
-    _identifiers = ("name", "site", "serial", "management_addr")
+    _identifiers = ("name",)
     _attributes = (
+        "site",
+        "serial",
+        "management_addr",
         "status",
         "role",
         "vendor",
