@@ -90,9 +90,7 @@ class NautobotAdapter(DiffSync):
         """Load LocationType floors from Nautobot into DiffSync models."""
         try:
             loc_type = OrmLocationType.objects.get(name="Floor")
-            locations = OrmLocation.objects.filter(
-                _custom_field_data__system_of_record="DNA Center", location_type=loc_type
-            )
+            locations = OrmLocation.objects.filter(location_type=loc_type)
             for location in locations:
                 new_floor = self.floor(
                     name=location.name,
