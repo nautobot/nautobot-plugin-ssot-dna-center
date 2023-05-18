@@ -146,7 +146,7 @@ class NautobotAdapter(DiffSync):
 
     def load_ports(self):
         """Load Interface data from Nautobot into DiffSync models."""
-        for port in OrmInterface.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        for port in OrmInterface.objects.filter(device___custom_field_data__system_of_record="DNA Center"):
             new_port = self.port(
                 name=port.name,
                 device=port.device.name,
