@@ -284,7 +284,7 @@ class NautobotPort(base.Port):
             enabled=attrs["enabled"],
             type=attrs["port_type"],
             mode=attrs["port_mode"],
-            mac_address=ids["mac_addr"],
+            mac_address=attrs["mac_addr"],
             mtu=attrs["mtu"],
             status=Status.objects.get(slug=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
@@ -298,6 +298,8 @@ class NautobotPort(base.Port):
         self.diffsync.job.log_info(message=f"Updating Port {port.name} for Device {port.device.name}.")
         if "description" in attrs:
             port.description = attrs["description"]
+        if "mac_addr" in attrs:
+            port.mac_address = attrs["mac_addr"]
         if "port_type" in attrs:
             port.type = attrs["port_type"]
         if "port_mode" in attrs:
