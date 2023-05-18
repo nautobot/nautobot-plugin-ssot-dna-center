@@ -56,7 +56,7 @@ class LabelMixin:
     def label_object(self, modelname, unique_id, custom_field):
         """Apply the given CustomField to the identified object."""
         model_instance = self.get(modelname, unique_id)
-        today = datetime.now().today()
+        today = datetime.today().date().isoformat()
 
         def _label_object(nautobot_object):
             """Apply custom field to object, if applicable."""
