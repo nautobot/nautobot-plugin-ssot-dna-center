@@ -66,7 +66,6 @@ class Device(DiffSyncModel):
     _attributes = (
         "site",
         "serial",
-        "management_addr",
         "status",
         "role",
         "vendor",
