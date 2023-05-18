@@ -1,7 +1,7 @@
 """Nautobot SSoT for Cisco DNA Center Adapter for DNA Center SSoT plugin."""
 from datetime import datetime
 from typing import List
-
+import json
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.conf import settings
@@ -108,6 +108,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         self.job = job
         self.sync = sync
         self.conn = client
+        self.failed_import_devices = []
         self.dnac_location_map = {}
         self.tenant = tenant
 
@@ -225,22 +226,6 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 except ValidationError as err:
                     self.job.log_warning(message=f"Unable to load floor {floor_name}. {err}")
 
-    def load_unassigned_building(self):
-        """Create Unassigned building for Sites missing an assigned Building."""
-        try:
-            self.get(self.building, {"name": "Unassigned", "area": None})
-        except ObjectNotFound:
-            new_building = self.building(
-                name="Unassigned",
-                address=None,
-                area=None,
-                latitude=None,
-                longitude=None,
-                tenant=self.tenant.name if self.tenant else None,
-                uuid=None,
-            )
-            self.add(new_building)
-
     def parse_and_sort_locations(self, locations: List[dict]):
         """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
 
@@ -311,28 +296,22 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
                 )
             if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
-                self.job.log_info(message="Loading Unassigned building for devices missing a Site.")
-                self.load_unassigned_building()
-                if loc_data.get("building") != "Unassigned":
-                    loc_data["building"] = "Unassigned"
+                self.job.log_warning(message=f"Device {dev['hostname']} is missing building so will not be imported.")
+                dev["field_validation"] = {"reason": "Missing building assignment.", "device_details": dev_details, "location_data": loc_data}
+                self.failed_import_devices.append(dev)
+                continue
             try:
                 if self.job.kwargs.get("debug"):
                     self.job.log_info(
                         message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
                     )
-                device_found = self.get(
-                    self.device,
-                    {
-                        "name": dev["hostname"],
-                        "site": loc_data["building"],
-                        "serial": dev["serialNumber"],
-                        "management_addr": dev["managementIpAddress"],
-                    },
-                )
+                device_found = self.get(self.device, dev["hostname"])
                 if device_found:
                     self.job.log_warning(
-                        message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']}"
+                        message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']} so will not be imported."
                     )
+                    dev["field_validation"] = {"reason": "Failed due to duplicate device found.", "device_details": dev_details, "location_data": loc_data}
+                    self.failed_import_devices.append(dev)
                     continue
             except ObjectNotFound:
                 new_dev = self.device(
@@ -356,6 +335,8 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     self.load_ports(device_id=dev["id"], dev=new_dev)
                 except ValidationError as err:
                     self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
+                    dev["field_validation"] = {"reason": f"Failed validation. {err}", "device_details": dev_details, "location_data": loc_data}
+                    self.failed_import_devices.append(dev)
 
     def load_ports(self, device_id: str, dev: DnaCenterDevice):
         """Load port info from DNAC into Port DiffSyncModel.
@@ -448,3 +429,9 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         """Load data from DNA Center into DiffSync models."""
         self.load_locations()
         self.load_devices()
+        if self.failed_import_devices:
+            self.job.log_warning(
+                message=f"List of {len(self.failed_import_devices)} devices that were unable to be loaded. {json.dumps(self.failed_import_devices, indent=2)}"
+            )
+        else:
+            self.job.log_info(message="There weren't any failed device loads. Congratulations!")
