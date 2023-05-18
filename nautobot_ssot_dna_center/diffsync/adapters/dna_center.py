@@ -7,7 +7,7 @@ from diffsync.exceptions import ObjectNotFound
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
-from nautobot.dcim.models import Device, Interface, Location, LocationType, Site
+from nautobot.dcim.models import Device, Interface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import IPAddress
@@ -39,10 +39,10 @@ class LabelMixin:
             "label": "Last sync from DNA Center",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
-        for model in [Site, Location, Device, Interface, IPAddress]:
+        for model in [Device, Interface, IPAddress]:
             custom_field.content_types.add(ContentType.objects.get_for_model(model))
 
-        for modelname in ["building", "floor", "device", "port", "ipaddress"]:
+        for modelname in ["device", "port", "ipaddress"]:
             for local_instance in self.get_all(modelname):
                 unique_id = local_instance.get_unique_id()
                 # Verify that the object now has a counterpart in the target DiffSync
@@ -64,13 +64,7 @@ class LabelMixin:
             nautobot_object.custom_field_data["system_of_record"] = "DNA Center"
             nautobot_object.validated_save()
 
-        if modelname == "building":
-            _label_object(Site.objects.get(name=model_instance.name))
-        elif modelname == "floor":
-            _label_object(
-                Location.objects.get(name=model_instance.name, location_type=LocationType.objects.get(name="Floor"))
-            )
-        elif modelname == "device":
+        if modelname == "device":
             _label_object(Device.objects.get(name=model_instance.name))
         elif modelname == "port":
             _label_object(Interface.objects.get(name=model_instance.name, device__name=model_instance.device))
