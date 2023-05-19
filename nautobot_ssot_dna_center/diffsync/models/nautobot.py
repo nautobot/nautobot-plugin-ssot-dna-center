@@ -254,10 +254,10 @@ class NautobotDevice(base.Device):
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
             device.custom_field_data.update({"os_version": attrs["version"]})
-        if LIFECYCLE_MGMT:
-            platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
-            lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
-            assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
+            if LIFECYCLE_MGMT:
+                platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
+                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
+                assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.validated_save()
         return super().update(attrs)
 
