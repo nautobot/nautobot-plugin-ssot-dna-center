@@ -231,20 +231,15 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             sorted(loc.get_unique_id() for loc in self.nb_adapter.get_all("floor")),
         )
         self.assertEqual(
-            [
-                "__HQ__R3JE-OYG4-RCDE__10.10.13.1",
-                "leaf1.abc.inc__HQ__FCW2214L0VK__10.10.10.1",
-                "leaf2.abc.inc__HQ__FCW2214L0UZ__10.10.11.1",
-                "spine1.abc.in__HQ__FCW2212D05S__10.10.12.1",
-            ],
+            ["", "leaf1.abc.inc", "leaf2.abc.inc", "spine1.abc.in"],
             sorted(dev.get_unique_id() for dev in self.nb_adapter.get_all("device")),
         )
         self.assertEqual(
             [
-                "Management____AA:BB:CC:DD:EE:F4",
-                "Management__leaf1.abc.inc__AA:BB:CC:DD:EE:F1",
-                "Management__leaf2.abc.inc__AA:BB:CC:DD:EE:F2",
-                "Management__spine1.abc.in__AA:BB:CC:DD:EE:F3",
+                "Management__",
+                "Management__leaf1.abc.inc",
+                "Management__leaf2.abc.inc",
+                "Management__spine1.abc.in",
             ],
             sorted(port.get_unique_id() for port in self.nb_adapter.get_all("port")),
         )
@@ -294,6 +289,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
     def test_sync_complete(self):
         """Test the sync_complete() method in the NautobotAdapter."""
         self.nb_adapter.objects_to_delete = {
+            "ports": [MagicMock()],
+            "devices": [MagicMock()],
             "floors": [MagicMock(), MagicMock()],
             "sites": [MagicMock()],
             "regions": [],
@@ -313,7 +310,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.assertEqual(len(self.nb_adapter.objects_to_delete["sites"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["regions"]), 0)
         self.assertTrue(self.nb_adapter.job.log_info.called)
-        self.assertTrue(self.nb_adapter.job.log_info.call_count, 3)
+        self.assertTrue(self.nb_adapter.job.log_info.call_count, 5)
         self.assertTrue(self.nb_adapter.job.log_info.call_args_list[0].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.log_info.call_args_list[1].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.log_info.call_args_list[2].startswith("Deleting"))
