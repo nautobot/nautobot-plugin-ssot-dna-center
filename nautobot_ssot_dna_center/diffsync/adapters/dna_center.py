@@ -291,7 +291,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 )
             if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
                 self.job.log_warning(message=f"Device {dev['hostname']} is missing building so will not be imported.")
-                dev["field_validation"] = {"reason": "Missing building assignment.", "device_details": dev_details, "location_data": loc_data}
+                dev["field_validation"] = {
+                    "reason": "Missing building assignment.",
+                    "device_details": dev_details,
+                    "location_data": loc_data,
+                }
                 self.failed_import_devices.append(dev)
                 continue
             try:
@@ -304,7 +308,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     self.job.log_warning(
                         message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']} so will not be imported."
                     )
-                    dev["field_validation"] = {"reason": "Failed due to duplicate device found.", "device_details": dev_details, "location_data": loc_data}
+                    dev["field_validation"] = {
+                        "reason": "Failed due to duplicate device found.",
+                        "device_details": dev_details,
+                        "location_data": loc_data,
+                    }
                     self.failed_import_devices.append(dev)
                     continue
             except ObjectNotFound:
@@ -329,7 +337,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     self.load_ports(device_id=dev["id"], dev=new_dev)
                 except ValidationError as err:
                     self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
-                    dev["field_validation"] = {"reason": f"Failed validation. {err}", "device_details": dev_details, "location_data": loc_data}
+                    dev["field_validation"] = {
+                        "reason": f"Failed validation. {err}",
+                        "device_details": dev_details,
+                        "location_data": loc_data,
+                    }
                     self.failed_import_devices.append(dev)
 
     def load_ports(self, device_id: str, dev: DnaCenterDevice):
