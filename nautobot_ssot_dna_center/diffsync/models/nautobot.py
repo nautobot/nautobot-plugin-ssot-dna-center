@@ -216,7 +216,7 @@ class NautobotDevice(base.Device):
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
             device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])
-        if "site" in attrs:
+        if "facility" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
         if "floor" in attrs:
             loc_type = LocationType.objects.get(name="Floor")
