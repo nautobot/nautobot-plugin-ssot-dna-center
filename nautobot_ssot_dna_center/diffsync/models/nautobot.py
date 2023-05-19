@@ -266,7 +266,7 @@ class NautobotDevice(base.Device):
         dev = Device.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Deleting Device: {dev.name}.")
         super().delete()
-        dev.delete()
+        self.diffsync.objects_to_delete["devices"].append(dev)
         return self
 
 
@@ -315,10 +315,10 @@ class NautobotPort(base.Port):
 
     def delete(self):
         """Delete Interface in Nautobot from Port object."""
+        self.diffsync.job.log_info(message=f"Deleting Interface {self.name} for {self.device}.")
         port = Interface.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Interface {port.name} for {port.device.name}.")
         super().delete()
-        port.delete()
+        self.diffsync.objects_to_delete["ports"].append(port)
         return self
 
 
