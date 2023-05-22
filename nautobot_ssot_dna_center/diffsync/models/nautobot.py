@@ -169,7 +169,7 @@ class NautobotDevice(base.Device):
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
         diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
-        site = Site.objects.get(name=ids["site"])
+        site = Site.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
@@ -181,7 +181,7 @@ class NautobotDevice(base.Device):
             device_role=device_role,
             site=site,
             device_type=device_type,
-            serial=ids["serial"],
+            serial=attrs["serial"],
             platform_id=platform.id,
         )
         if attrs.get("floor"):
@@ -215,7 +215,7 @@ class NautobotDevice(base.Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])
+            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])[0]
         if "site" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
         if "floor" in attrs:
@@ -232,7 +232,7 @@ class NautobotDevice(base.Device):
             )
             device.location = location
         if "model" in attrs:
-            device.device_type = DeviceType.objects.get_or_create(model=attrs["model"])
+            device.device_type = DeviceType.objects.get_or_create(model=attrs["model"])[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "platform" in attrs:
@@ -254,10 +254,10 @@ class NautobotDevice(base.Device):
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
             device.custom_field_data.update({"os_version": attrs["version"]})
-        if LIFECYCLE_MGMT:
-            platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
-            lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
-            assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
+            if LIFECYCLE_MGMT:
+                platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
+                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
+                assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.validated_save()
         return super().update(attrs)
 
@@ -266,7 +266,7 @@ class NautobotDevice(base.Device):
         dev = Device.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Deleting Device: {dev.name}.")
         super().delete()
-        dev.delete()
+        self.diffsync.objects_to_delete["devices"].append(dev)
         return self
 
 
@@ -284,7 +284,7 @@ class NautobotPort(base.Port):
             enabled=attrs["enabled"],
             type=attrs["port_type"],
             mode=attrs["port_mode"],
-            mac_address=ids["mac_addr"],
+            mac_address=attrs["mac_addr"],
             mtu=attrs["mtu"],
             status=Status.objects.get(slug=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
@@ -298,6 +298,8 @@ class NautobotPort(base.Port):
         self.diffsync.job.log_info(message=f"Updating Port {port.name} for Device {port.device.name}.")
         if "description" in attrs:
             port.description = attrs["description"]
+        if "mac_addr" in attrs:
+            port.mac_address = attrs["mac_addr"]
         if "port_type" in attrs:
             port.type = attrs["port_type"]
         if "port_mode" in attrs:
@@ -313,10 +315,10 @@ class NautobotPort(base.Port):
 
     def delete(self):
         """Delete Interface in Nautobot from Port object."""
+        self.diffsync.job.log_info(message=f"Deleting Interface {self.name} for {self.device}.")
         port = Interface.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Interface {port.name} for {port.device.name}.")
         super().delete()
-        port.delete()
+        self.diffsync.objects_to_delete["ports"].append(port)
         return self
 
 

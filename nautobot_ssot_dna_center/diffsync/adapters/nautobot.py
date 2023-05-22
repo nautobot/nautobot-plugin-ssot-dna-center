@@ -90,9 +90,7 @@ class NautobotAdapter(DiffSync):
         """Load LocationType floors from Nautobot into DiffSync models."""
         try:
             loc_type = OrmLocationType.objects.get(name="Floor")
-            locations = OrmLocation.objects.filter(
-                _custom_field_data__system_of_record="DNA Center", location_type=loc_type
-            )
+            locations = OrmLocation.objects.filter(location_type=loc_type)
             for location in locations:
                 new_floor = self.floor(
                     name=location.name,
@@ -139,14 +137,13 @@ class NautobotAdapter(DiffSync):
                 version=version,
                 platform=dev.platform.slug if dev.platform else "",
                 tenant=dev.tenant.name if dev.tenant else None,
-                management_addr=dev.primary_ip.host if dev.primary_ip else "",
                 uuid=dev.id,
             )
             self.add(new_dev)
 
     def load_ports(self):
         """Load Interface data from Nautobot into DiffSync models."""
-        for port in OrmInterface.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        for port in OrmInterface.objects.filter(device___custom_field_data__system_of_record="DNA Center"):
             new_port = self.port(
                 name=port.name,
                 device=port.device.name,
@@ -160,15 +157,7 @@ class NautobotAdapter(DiffSync):
                 uuid=port.id,
             )
             self.add(new_port)
-            device = self.get(
-                self.device,
-                {
-                    "name": port.device.name,
-                    "site": port.device.site.name,
-                    "serial": port.device.serial,
-                    "management_addr": port.device.primary_ip.host if port.device.primary_ip else "",
-                },
-            )
+            device = self.get(self.device, port.device.name)
             device.add_child(new_port)
 
     def load_ipaddresses(self):
@@ -196,7 +185,7 @@ class NautobotAdapter(DiffSync):
         self.job.log_info(message="Sync is complete. Labelling imported objects from DNA Center.")
         source.label_imported_objects(target=self)
 
-        for grouping in ["floors", "sites", "regions"]:
+        for grouping in ["ports", "devices", "floors", "sites", "regions"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
                     self.job.log_info(message=f"Deleting {nautobot_obj}.")
