@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.9.0 (2023-05-22)
+### Feature
+* Add failed_import_devices list for field validation. ([`55ace49`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/55ace49c25cc9e81dba2b02b57de7ceae475cc8e))
+
+### Fix
+* :bug: Correct updates for role and device type as they're tuples ([`bd69d61`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/bd69d6124a204f30dc4a3ed103389adb085b808f))
+* :bug: Correct attribute to facility from site ([`c6e2294`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/c6e2294e9a09cb338adb8d3898dcf719654ef5ed))
+* :bug: Only do DLC check if version in attrs for update ([`cef860d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/cef860d359e094c5538422b37c4b17283d7b6e02))
+* :bug: Remove filter using DNAC CF on Floor ([`379eba8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/379eba81f0644c0aec671aa3e5805656b0c760f4))
+* Remove management_addr from _attributes on Device ([`6037ddc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/6037ddc634545c7ab8c752d41323b9dff75f8170))
+* Correct Sync CF to just be date ([`15b30ed`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/15b30ed56499b00bb274477fbefaae565fb9a6d1))
+* Correct query for Device when loading ports ([`e788adb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/e788adb3f4f0b29962dd8694024b374dec5f1b33))
+
 ## v0.8.0 (2023-04-26)
 ### Feature
 * ✨ Update Job to execute sync in post_run to make it non-atomic. ([`20579ff`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/20579ff084017bb266e0a6dee2e804307c05df8a))
