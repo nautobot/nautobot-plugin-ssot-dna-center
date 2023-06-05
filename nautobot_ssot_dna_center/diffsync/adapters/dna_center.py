@@ -36,7 +36,7 @@ class LabelMixin:
             "type": CustomFieldTypeChoices.TYPE_DATE,
             "name": "ssot_last_synchronized",
             "slug": "ssot_last_synchronized",
-            "label": "Last sync from DNA Center",
+            "label": "Last sync from System of Record",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
         for model in [Device, Interface, IPAddress]:
