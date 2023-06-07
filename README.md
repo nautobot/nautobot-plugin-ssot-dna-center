@@ -25,7 +25,23 @@ Once installed, the plugin needs to be enabled in your `nautobot_config.py`
 ```python
 # In your nautobot_config.py
 PLUGINS = ["nautobot_ssot", "nautobot_ssot_dna_center"]
+```
 
+See the section below for configuration settings.
+
+## Configuration
+
+The plugin behavior can be controlled with the following list of settings
+
+| Setting                           | Default | Description                                                            |
+| --------------------------------- | ------- | ---------------------------------------------------------------------- |
+| import_global                     | True    | Whether to import the Global area or not. Defaults to True.            |
+| update_locations                  | True    | Whether to update locations that are found. Defaults to True.          |
+| hostname_mapping                  | []      | List of tuples containing regex to match hostname to a DeviceRole.     |
+
+## Configuration Example
+
+```python
 PLUGINS_CONFIG = {
     "nautobot_ssot": {
         "hide_example_jobs": True,
@@ -33,14 +49,10 @@ PLUGINS_CONFIG = {
     "nautobot_ssot_dna_center": {
         "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
         "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
+        "hostname_mapping": [],
     },
 }
-
 ```
-
-The plugin behavior can be controlled with the following list of settings
-
-- TODO
 
 Databases supported:
 

@@ -26,7 +26,7 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
         "type": CustomFieldTypeChoices.TYPE_DATE,
         "name": "ssot_last_synchronized",
         "slug": "ssot_last_synchronized",
-        "label": "Last sync from DNA Center",
+        "label": "Last sync from System of Record",
     }
     sync_custom_field, _ = CustomField.objects.update_or_create(name=sync_cf_dict["name"], defaults=sync_cf_dict)
     for model in [Device, Interface, IPAddress]:
