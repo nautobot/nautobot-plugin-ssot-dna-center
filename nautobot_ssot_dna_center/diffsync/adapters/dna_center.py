@@ -36,7 +36,7 @@ class LabelMixin:
             "type": CustomFieldTypeChoices.TYPE_DATE,
             "name": "ssot_last_synchronized",
             "slug": "ssot_last_synchronized",
-            "label": "Last sync from DNA Center",
+            "label": "Last sync from System of Record",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
         for model in [Device, Interface, IPAddress]:
@@ -272,10 +272,18 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
 
     def load_devices(self):
         """Load Device data from DNA Center info DiffSync models."""
+        PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"]
         devices = self.conn.get_devices()
         for dev in devices:
             platform = "unknown"
+            dev_role = "Unknown"
             vendor = "Cisco"
+            if PLUGIN_CFG.get("hostname_mapping"):
+                dev_role = self.conn.parse_hostname_for_role(
+                    hostname_map=PLUGIN_CFG["hostname_mapping"], device_hostname=dev["hostname"]
+                )
+            if dev_role == "Unknown":
+                dev_role = dev["role"]
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
                 platform = DNAC_PLATFORM_MAPPER[dev["softwareType"]]
             else:
@@ -319,7 +327,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 new_dev = self.device(
                     name=dev["hostname"],
                     status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
-                    role=dev["role"],
+                    role=dev_role,
                     vendor=vendor,
                     model=dev["platformId"] if dev.get("platformId") else "Unknown",
                     area=loc_data["areas"][-1] if loc_data.get("areas") else None,
