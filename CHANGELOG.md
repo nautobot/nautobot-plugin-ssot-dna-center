@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.0.0 (2023-06-07)
+### Feature
+* ✨ Update Device load function to hostname_mapping setting is found. ([`8ecdd8b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/8ecdd8bbf1e1ff1b0b2dd7aa252f7371e377114b))
+* ✨ Add new function to parse hostname to determine DeviceRole. ([`91b139f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/91b139f51b0fd1c4460777c798058dc86201619d))
+
+### Documentation
+* 📝 Update README with details about hostname_mapping and other settings. ([`17b02a1`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/17b02a122e7d07a9e733842a5d2ae24753c95ee6))
+
 ## v0.9.0 (2023-05-22)
 ### Feature
 * Add failed_import_devices list for field validation. ([`55ace49`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/55ace49c25cc9e81dba2b02b57de7ceae475cc8e))
