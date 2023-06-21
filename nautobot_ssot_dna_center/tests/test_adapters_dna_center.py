@@ -230,7 +230,7 @@ class TestDnaCenterAdapterTestCase(
         self.dna_center.load_ports = MagicMock()
         self.dna_center.load_devices()
         self.assertEqual(
-            {f"{dev['hostname']}" for dev in DEVICE_FIXTURE},
+            {f"{dev['hostname']}" for dev in DEVICE_FIXTURE if dev.get("hostname")},
             {dev.get_unique_id() for dev in self.dna_center.get_all("device")},
         )
         self.dna_center.load_ports.assert_called()
@@ -240,9 +240,10 @@ class TestDnaCenterAdapterTestCase(
         self.dna_center.load_devices()
         expected_ports = []
         for dev in DEVICE_FIXTURE:
-            for port in PORT_FIXTURE:
-                if port.get("portName"):
-                    expected_ports.append(f"{port['portName']}__{dev['hostname']}")
+            if dev.get("hostname"):
+                for port in PORT_FIXTURE:
+                    if port.get("portName"):
+                        expected_ports.append(f"{port['portName']}__{dev['hostname']}")
         actual_ports = [port.get_unique_id() for port in self.dna_center.get_all("port")]
         self.assertEqual(expected_ports, actual_ports)
 
