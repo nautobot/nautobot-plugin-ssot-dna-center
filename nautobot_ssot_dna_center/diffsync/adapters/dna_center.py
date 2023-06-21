@@ -337,7 +337,6 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     role=dev_role,
                     vendor=vendor,
                     model=dev["platformId"] if dev.get("platformId") else "Unknown",
-                    area=loc_data["areas"][-1] if loc_data.get("areas") else None,
                     site=loc_data["building"],
                     floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
                     serial=dev["serialNumber"] if dev.get("serialNumber") else "",

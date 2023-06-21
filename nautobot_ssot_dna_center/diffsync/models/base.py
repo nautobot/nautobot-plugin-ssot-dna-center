@@ -70,7 +70,6 @@ class Device(DiffSyncModel):
         "role",
         "vendor",
         "model",
-        "area",
         "floor",
         "version",
         "platform",
@@ -83,7 +82,6 @@ class Device(DiffSyncModel):
     role: Optional[str]
     vendor: str
     model: str
-    area: Optional[str]
     site: Optional[str]
     floor: Optional[str]
     serial: str = ""
