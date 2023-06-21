@@ -278,6 +278,13 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             platform = "unknown"
             dev_role = "Unknown"
             vendor = "Cisco"
+            if not dev.get("hostname"):
+                self.job.log_warning(message=f"Device {dev['id']} is missing hostname so will be skipped.")
+                dev["field_validation"] = {
+                        "reason": "Failed due to missing hostname.",
+                    }
+                self.failed_import_devices.append(dev)
+                continue
             if PLUGIN_CFG.get("hostname_mapping"):
                 dev_role = self.conn.parse_hostname_for_role(
                     hostname_map=PLUGIN_CFG["hostname_mapping"], device_hostname=dev["hostname"]
