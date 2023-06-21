@@ -281,8 +281,8 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             if not dev.get("hostname"):
                 self.job.log_warning(message=f"Device {dev['id']} is missing hostname so will be skipped.")
                 dev["field_validation"] = {
-                        "reason": "Failed due to missing hostname.",
-                    }
+                    "reason": "Failed due to missing hostname.",
+                }
                 self.failed_import_devices.append(dev)
                 continue
             if PLUGIN_CFG.get("hostname_mapping"):
