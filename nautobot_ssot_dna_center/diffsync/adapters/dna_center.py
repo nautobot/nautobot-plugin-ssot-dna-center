@@ -294,7 +294,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
                 platform = DNAC_PLATFORM_MAPPER[dev["softwareType"]]
             else:
-                if not dev.get("softwareType") and "3800" in dev.get("type"):
+                if not dev.get("softwareType") and dev.get("type") and "3800" in dev["type"]:
                     platform = "cisco_ios"
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     platform = "meraki"
