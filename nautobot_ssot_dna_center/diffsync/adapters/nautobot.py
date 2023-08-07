@@ -131,7 +131,7 @@ class NautobotAdapter(DiffSync):
                 vendor=dev.device_type.manufacturer.name,
                 model=dev.device_type.model,
                 site=dev.site.name,
-                floor=dev.location.name if dev.location else "",
+                floor=dev.location.name if dev.location else None,
                 serial=dev.serial,
                 version=version,
                 platform=dev.platform.slug if dev.platform else "",
