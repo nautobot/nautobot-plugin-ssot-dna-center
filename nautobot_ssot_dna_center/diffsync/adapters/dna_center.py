@@ -294,7 +294,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             if dev["softwareType"] in DNAC_PLATFORM_MAPPER:
                 platform = DNAC_PLATFORM_MAPPER[dev["softwareType"]]
             else:
-                if not dev.get("softwareType") and dev.get("type") and "3800" in dev["type"]:
+                if not dev.get("softwareType") and dev.get("type") and ("3800" in dev["type"] or "9130" in dev["type"]):
                     platform = "cisco_ios"
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     platform = "meraki"
@@ -340,7 +340,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     vendor=vendor,
                     model=dev["platformId"] if dev.get("platformId") else "Unknown",
                     site=loc_data["building"],
-                    floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else "",
+                    floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else None,
                     serial=dev["serialNumber"] if dev.get("serialNumber") else "",
                     version=dev.get("softwareVersion"),
                     platform=platform,
