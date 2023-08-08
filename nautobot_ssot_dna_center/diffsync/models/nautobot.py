@@ -1,5 +1,5 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
-
+from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
@@ -205,6 +205,8 @@ class NautobotDevice(base.Device):
             if LIFECYCLE_MGMT:
                 lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.slug, version=attrs["version"])
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
+        new_device.custom_field_data.update({"system_of_record": "DNA Center"})
+        new_device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -261,6 +263,8 @@ class NautobotDevice(base.Device):
                 platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
                 lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
                 assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
+        device.custom_field_data.update({"system_of_record": "DNA Center"})
+        device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         device.validated_save()
         return super().update(attrs)
 
@@ -292,6 +296,8 @@ class NautobotPort(base.Port):
             status=Status.objects.get(slug=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
         )
+        new_port.custom_field_data.update({"system_of_record": "DNA Center"})
+        new_port.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         new_port.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -313,6 +319,8 @@ class NautobotPort(base.Port):
             port.status = Status.objects.get(slug=attrs["status"])
         if "enabled" in attrs:
             port.enabled = attrs["enabled"]
+        port.custom_field_data.update({"system_of_record": "DNA Center"})
+        port.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         port.validated_save()
         return super().update(attrs)
 
@@ -342,6 +350,8 @@ class NautobotIPAddress(base.IPAddress):
             )
             if attrs.get("tenant"):
                 new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
+            new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
             new_ip.validated_save()
             if attrs.get("primary"):
                 if ":" in ids["address"]:
@@ -371,6 +381,8 @@ class NautobotIPAddress(base.IPAddress):
                 ipaddr.tenant = Tenant.objects.get(name=attrs["tenant"])
             else:
                 ipaddr.tenant = None
+        ipaddr.custom_field_data.update({"system_of_record": "DNA Center"})
+        ipaddr.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         ipaddr.validated_save()
         return super().update(attrs)
 
