@@ -17,8 +17,8 @@ class NautobotSsotDnaCenterConfig(PluginConfig):
     description = "Nautobot SSoT for Cisco DNA Center."
     base_url = "ssot-dna-center"
     required_settings = ["import_global", "update_locations"]
-    min_version = "1.4.0"
-    max_version = "1.9999"
+    min_version = "2.0.0"
+    max_version = "2.9999"
     default_settings = {"import_global": True, "update_locations": True}
     caching_config = {}
 
