@@ -15,8 +15,6 @@ from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.dcim.models import Location as OrmLocation
 from nautobot.dcim.models import LocationType as OrmLocationType
-from nautobot.dcim.models import Region as OrmRegion
-from nautobot.dcim.models import Site as OrmSite
 from nautobot.extras.models import Relationship as OrmRelationship
 from nautobot.extras.models import RelationshipAssociation as OrmRelationshipAssociation
 from nautobot.ipam.models import IPAddress as OrmIPAddress
@@ -57,34 +55,48 @@ class NautobotAdapter(DiffSync):
 
     def load_regions(self):
         """Load Region data from Nautobt into DiffSync models."""
-        for region in OrmRegion.objects.all():
-            try:
-                self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
-                self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
-            except ObjectNotFound:
-                new_region = self.area(
-                    name=region.name,
-                    parent=region.parent.name if region.parent else None,
-                    uuid=region.id,
-                )
-                self.add(new_region)
+        try:
+            loc_type = OrmLocationType.objects.get(name="Region")
+            locations = OrmLocation.objects.filter(location_type=loc_type)
+            for region in locations:
+                try:
+                    self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
+                    self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
+                except ObjectNotFound:
+                    new_region = self.area(
+                        name=region.name,
+                        parent=region.parent.name if region.parent else None,
+                        uuid=region.id,
+                    )
+                    self.add(new_region)
+        except OrmLocationType.DoesNotExist as err:
+            self.job.log_warning(
+                message=f"Unable to find LocationType: Region so can't find region Locations to load. {err}"
+            )
 
     def load_sites(self):
         """Load Site data from Nautobot into DiffSync models."""
-        for site in OrmSite.objects.all():
-            try:
-                self.get(self.building, {"name": site.name, "area": site.region.name if site.region else None})
-            except ObjectNotFound:
-                new_building = self.building(
-                    name=site.name,
-                    address=site.physical_address,
-                    area=site.region.name if site.region else "",
-                    latitude=str(site.latitude).rstrip("0"),
-                    longitude=str(site.longitude).rstrip("0"),
-                    tenant=site.tenant.name if site.tenant else None,
-                    uuid=site.id,
-                )
-                self.add(new_building)
+        try:
+            loc_type = OrmLocationType.objects.get(name="Site")
+            locations = OrmLocation.objects.filter(location_type=loc_type)
+            for site in locations:
+                try:
+                    self.get(self.building, {"name": site.name, "area": site.parent.name if site.parent else None})
+                except ObjectNotFound:
+                    new_building = self.building(
+                        name=site.name,
+                        address=site.physical_address,
+                        area=site.region.name if site.region else "",
+                        latitude=str(site.latitude).rstrip("0"),
+                        longitude=str(site.longitude).rstrip("0"),
+                        tenant=site.tenant.name if site.tenant else None,
+                        uuid=site.id,
+                    )
+                    self.add(new_building)
+        except OrmLocationType.DoesNotExist as err:
+            self.job.log_warning(
+                message=f"Unable to find LocationType: Site so can't find site Locations to load. {err}"
+            )
 
     def load_floors(self):
         """Load LocationType floors from Nautobot into DiffSync models."""
@@ -127,10 +139,10 @@ class NautobotAdapter(DiffSync):
             new_dev = self.device(
                 name=dev.name,
                 status=dev.status.name,
-                role=dev.device_role.name,
+                role=dev.role.name,
                 vendor=dev.device_type.manufacturer.name,
                 model=dev.device_type.model,
-                site=dev.site.name,
+                site=dev.location.parent.name if dev.location.parent else None,
                 floor=dev.location.name if dev.location else None,
                 serial=dev.serial,
                 version=version,

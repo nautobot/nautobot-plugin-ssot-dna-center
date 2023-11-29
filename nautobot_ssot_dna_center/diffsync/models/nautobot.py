@@ -4,19 +4,16 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
     Device,
-    DeviceRole,
     DeviceType,
     Interface,
     Manufacturer,
-    Site,
     Rack,
     RackGroup,
-    Region,
     Location,
     LocationType,
 )
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, Status
+from nautobot.extras.models import CustomField, Status, Role
 from nautobot.ipam.models import IPAddress
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
@@ -37,17 +34,16 @@ class NautobotArea(base.Area):
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
         try:
-            Region.objects.get(name=ids["name"])
+            Location.objects.get(name=ids["name"])
             diffsync.job.log_warning(message=f"Region {ids['name']} already exists so won't be created.")
         except Region.DoesNotExist:
-            if diffsync.job.kwargs.get("debug"):
-                diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
-            new_region = Region(
+            diffsync.job.log_info(message=f"Creating Region {ids['name']}.")
+            new_region = Location(
                 name=ids["name"],
             )
             if ids.get("parent"):
                 try:
-                    new_region.parent = Region.objects.get(name=ids["parent"])
+                    new_region.parent = Location.objects.get(name=ids["parent"])
                 except Region.DoesNotExist as err:
                     diffsync.job.log_warning(message=f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
             new_region.validated_save()
@@ -60,9 +56,8 @@ class NautobotBuilding(base.Building):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from Building object."""
-        if diffsync.job.kwargs.get("debug"):
-            diffsync.job.log_info(message=f"Creating Site {ids['name']}.")
-        new_site = Site(
+        diffsync.job.log_info(message=f"Creating Site {ids['name']}.")
+        new_site = Location(
             name=ids["name"],
             physical_address=attrs["address"] if attrs.get("address") else "",
             status=Status.objects.get(name="Active"),
@@ -73,7 +68,7 @@ class NautobotBuilding(base.Building):
             new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
         try:
             if attrs.get("area"):
-                new_site.region = Region.objects.get(name=attrs["area"])
+                new_site.region = Location.objects.get(name=attrs["area"])
         except Region.DoesNotExist:
             diffsync.job.log_warning(message=f"Unable to find parent {attrs['area']}")
         new_site.validated_save()
@@ -86,9 +81,8 @@ class NautobotBuilding(base.Building):
                 message=f"`update_locations` setting is disabled so will skip updating {self.name}."
             )
             return None
-        site = Site.objects.get(id=self.uuid)
-        if self.diffsync.job.kwargs.get("debug"):
-            self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
+        site = Location.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Site {site.name}.")
         if "address" in attrs:
             site.physical_address = attrs["address"]
         if "area" in attrs:
@@ -112,9 +106,8 @@ class NautobotBuilding(base.Building):
                 message=f"`update_locations` setting is disabled so will skip deleting {self.name}."
             )
             return None
-        site = Site.objects.get(id=self.uuid)
-        if self.diffsync.job.kwargs.get("debug"):
-            self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
+        site = Location.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
         self.diffsync.objects_to_delete["sites"].append(site)
         return self
 
@@ -175,11 +168,10 @@ class NautobotDevice(base.Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
-        if diffsync.job.kwargs.get("debug"):
-            diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
-        site = Site.objects.get(name=attrs["site"])
+        diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
+        site = Location.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
-        device_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
+        device_role, _ = Role.objects.get_or_create(name=attrs["role"])
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
         platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         status = Status.objects.get(name=attrs["status"])
@@ -226,20 +218,20 @@ class NautobotDevice(base.Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])[0]
+            device.device_role = Role.objects.get_or_create(name=attrs["role"])[0]
         if "site" in attrs:
-            device.site = Site.objects.get(name=attrs["site"])
+            device.site = Location.objects.get(name=attrs["site"])
         if "floor" in attrs:
             loc_type = LocationType.objects.get(name="Floor")
             if attrs.get("floor"):
-                if attrs.get("site"):
-                    site = attrs["site"]
+                if attrs.get("Location"):
+                    site = attrs["Location"]
                 else:
-                    site = device.site.name
+                    site = device.Location.name
                 location, _ = Location.objects.get_or_create(
                     name=attrs["floor"],
                     location_type=loc_type,
-                    site=Site.objects.get(name=site),
+                    site=Location.objects.get(name=site),
                     status=Status.objects.get(name="Active"),
                 )
             else:
