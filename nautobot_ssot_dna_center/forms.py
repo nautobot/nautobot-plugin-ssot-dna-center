@@ -1,7 +1,7 @@
 """Forms for nautobot_ssot_dna_center."""
 from django import forms
 from nautobot.tenancy.models import Tenant
-from nautobot.utilities.forms import (
+from nautobot.core.forms import (
     BootstrapMixin,
     BulkEditForm,
     SlugField,

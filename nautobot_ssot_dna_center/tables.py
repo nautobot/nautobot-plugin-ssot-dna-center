@@ -1,7 +1,7 @@
 """Tables for nautobot_ssot_dna_center."""
 
 import django_tables2 as tables
-from nautobot.utilities.tables import BaseTable, ButtonsColumn, ToggleColumn
+from nautobot.core.tables import BaseTable, ButtonsColumn, ToggleColumn
 
 from nautobot_ssot_dna_center import models
 

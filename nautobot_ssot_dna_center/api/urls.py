@@ -1,6 +1,6 @@
 """Django API urlpatterns declaration for nautobot_ssot_dna_center plugin."""
 
-from nautobot.core.api import OrderedDefaultRouter
+from nautobot.apps.api import OrderedDefaultRouter
 
 from nautobot_ssot_dna_center.api import views
 

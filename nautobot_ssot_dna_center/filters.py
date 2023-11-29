@@ -2,13 +2,13 @@
 
 import django_tables2 as tables
 from nautobot.extras.models import SecretsGroup
-from nautobot.utilities.filters import BaseFilterSet, NameSlugSearchFilterSet, NaturalKeyOrPKMultipleChoiceFilter
+from nautobot.core.filters import BaseFilterSet, NameSearchFilterSet, NaturalKeyOrPKMultipleChoiceFilter
 
-from nautobot.utilities.tables import ToggleColumn
+from nautobot.core.tables import ToggleColumn
 from nautobot_ssot_dna_center import models
 
 
-class DNACInstanceFilterSet(BaseFilterSet, NameSlugSearchFilterSet):
+class DNACInstanceFilterSet(BaseFilterSet, NameSearchFilterSet):
     """Filter for DNACInstance."""
 
     pk = ToggleColumn()
