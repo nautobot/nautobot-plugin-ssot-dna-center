@@ -130,7 +130,7 @@ class NautobotAdapter(DiffSync):
             version = dev.custom_field_data.get("os_version")
             if LIFECYCLE_MGMT:
                 try:
-                    soft_lcm = OrmRelationship.objects.get(slug="device_soft")
+                    soft_lcm = OrmRelationship.objects.get(name="Software on Device")
                     version = OrmRelationshipAssociation.objects.get(
                         relationship=soft_lcm, destination_id=dev.id
                     ).source.version
@@ -146,7 +146,7 @@ class NautobotAdapter(DiffSync):
                 floor=dev.location.name if dev.location else None,
                 serial=dev.serial,
                 version=version,
-                platform=dev.platform.slug if dev.platform else "",
+                platform=dev.platform.name if dev.platform else "",
                 tenant=dev.tenant.name if dev.tenant else None,
                 uuid=dev.id,
             )
@@ -164,7 +164,7 @@ class NautobotAdapter(DiffSync):
                 port_mode=port.mode,
                 mac_addr=str(port.mac_address) if getattr(port, "mac_address") else None,
                 mtu=port.mtu if port.mtu else 1500,
-                status=port.status.slug,
+                status=port.status.name,
                 uuid=port.id,
             )
             self.add(new_port)

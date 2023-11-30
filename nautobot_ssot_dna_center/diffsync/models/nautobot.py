@@ -171,15 +171,18 @@ class NautobotDevice(base.Device):
         diffsync.job.log_info(message=f"Creating Device {ids['name']}.")
         site = Location.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
-        device_role, _ = Role.objects.get_or_create(name=attrs["role"])
+        device_role, created = Role.objects.get_or_create(name=attrs["role"])
+        if created:
+            device_role.content_types.add(ContentType.objects.get_for_model(Device))
+            device_role.validated_save()
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
         platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         status = Status.objects.get(name=attrs["status"])
         new_device = Device(
             name=ids["name"],
             status=status,
-            device_role=device_role,
-            site=site,
+            role=device_role,
+            location=site,
             device_type=device_type,
             serial=attrs["serial"],
             platform_id=platform.id,
@@ -187,19 +190,18 @@ class NautobotDevice(base.Device):
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
             loc, _ = Location.objects.get_or_create(
-                name=attrs["floor"], location_type=loc_type, site=site, status=Status.objects.get(name="Active")
+                name=attrs["floor"], location_type=loc_type, location=site, status=Status.objects.get(name="Active")
             )
             new_device.location = loc
         if attrs.get("tenant"):
             new_device.tenant = Tenant.objects.get(name=attrs["tenant"])
         if attrs.get("version"):
             _cf_dict = {
-                "name": "os_version",
-                "slug": "os_version",
+                "key": "os_version",
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": "OS Version",
             }
-            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+            field, _ = CustomField.objects.get_or_create(key=_cf_dict["key"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(Device))
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
@@ -257,7 +259,7 @@ class NautobotDevice(base.Device):
         if "version" in attrs:
             _cf_dict = {
                 "name": "os_version",
-                "slug": "os_version",
+                "key": "os_version",
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": "OS Version",
             }
@@ -300,7 +302,7 @@ class NautobotPort(base.Port):
             mode=attrs["port_mode"],
             mac_address=attrs["mac_addr"],
             mtu=attrs["mtu"],
-            status=Status.objects.get(slug=attrs["status"]),
+            status=Status.objects.get(name=attrs["status"]),
             mgmt_only=True if "Management" in ids["name"] else False,
         )
         new_port.custom_field_data.update({"system_of_record": "DNA Center"})
@@ -324,7 +326,7 @@ class NautobotPort(base.Port):
         if "mtu" in attrs:
             port.mtu = attrs["mtu"]
         if "status" in attrs:
-            port.status = Status.objects.get(slug=attrs["status"])
+            port.status = Status.objects.get(name=attrs["status"])
         if "enabled" in attrs:
             port.enabled = attrs["enabled"]
         port.custom_field_data.update({"system_of_record": "DNA Center"})
