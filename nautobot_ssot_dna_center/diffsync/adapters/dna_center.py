@@ -120,7 +120,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             self.load_buildings(buildings)
             self.load_floors(floors)
         else:
-            self.job.log_failure("No location data was returned from DNAC. Unable to proceed.")
+            self.job.logger.error("No location data was returned from DNAC. Unable to proceed.")
 
     def load_areas(self, areas: List[dict]):
         """Load areas from DNAC into DiffSync model.
@@ -133,7 +133,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 if location["name"] == "Global":
                     continue
             if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Loading area {location['name']}. {location}")
+                self.job.logger.info(f"Loading area {location['name']}. {location}")
             parent_name = None
             if location.get("parentId") and location["parentId"] in self.dnac_location_map:
                 parent_name = self.dnac_location_map[location["parentId"]]["name"]
@@ -146,7 +146,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             try:
                 self.add(new_area)
             except ValidationError as err:
-                self.job.log_warning(message=f"Unable to load area {location['name']}. {err}")
+                self.job.logger.warning(f"Unable to load area {location['name']}. {err}")
 
     def load_buildings(self, buildings: List[dict]):
         """Load building data from DNAC into DiffSync model.
@@ -157,11 +157,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         for location in buildings:
             try:
                 self.get(self.building, location["name"])
-                self.job.log_warning(message=f"Building {location['name']} already loaded so skipping.")
+                self.job.logger.warning(f"Building {location['name']} already loaded so skipping.")
                 continue
             except ObjectNotFound:
                 if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Loading building {location['name']}. {location}")
+                    self.job.logger.info(f"Loading building {location['name']}. {location}")
                 address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
                 latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
                 if location["parentId"] in self.dnac_location_map:
@@ -184,7 +184,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 try:
                     self.add(new_building)
                 except ValidationError as err:
-                    self.job.log_warning(message=f"Unable to load building {location['name']}. {err}")
+                    self.job.logger.warning(f"Unable to load building {location['name']}. {err}")
 
     def load_floors(self, floors: List[dict]):
         """Load floor data from DNAC into DiffSync model.
@@ -194,16 +194,16 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         """
         for location in floors:
             if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Loading floor {location['name']}. {location}")
+                self.job.logger.info(f"Loading floor {location['name']}. {location}")
             if location["parentId"] in self.dnac_location_map:
                 _building = self.dnac_location_map[location["parentId"]]
             else:
-                self.job.log_warning(message=f"Parent to {location['name']} can't be found so will be skipped.")
+                self.job.logger.warning(f"Parent to {location['name']} can't be found so will be skipped.")
                 continue
             floor_name = f"{_building['name']} - {location['name']}"
             try:
                 self.get(self.floor, {"name": floor_name, "building": _building["name"]})
-                self.job.log_warning(message=f"Duplicate Floor {floor_name} attempting to be loaded.")
+                self.job.logger.warning(f"Duplicate Floor {floor_name} attempting to be loaded.")
             except ObjectNotFound:
                 new_floor = self.floor(
                     name=floor_name,
@@ -217,11 +217,11 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                         parent = self.get(self.building, _building["name"])
                         parent.add_child(new_floor)
                     except ObjectNotFound as err:
-                        self.job.log_warning(
-                            message=f"Unable to find building {_building['name']} for floor {floor_name}. {err}"
+                        self.job.logger.warning(
+                            f"Unable to find building {_building['name']} for floor {floor_name}. {err}"
                         )
                 except ValidationError as err:
-                    self.job.log_warning(message=f"Unable to load floor {floor_name}. {err}")
+                    self.job.logger.warning(f"Unable to load floor {floor_name}. {err}")
 
     def parse_and_sort_locations(self, locations: List[dict]):
         """Separate locations into areas, buildings, and floors for processing. Also sort by siteHierarchy.
@@ -282,7 +282,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             dev_role = "Unknown"
             vendor = "Cisco"
             if not dev.get("hostname"):
-                self.job.log_warning(message=f"Device {dev['id']} is missing hostname so will be skipped.")
+                self.job.logger.warning(f"Device {dev['id']} is missing hostname so will be skipped.")
                 dev["field_validation"] = {
                     "reason": "Failed due to missing hostname.",
                 }
@@ -312,7 +312,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
                 )
             if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
-                self.job.log_warning(message=f"Device {dev['hostname']} is missing building so will not be imported.")
+                self.job.logger.warning(f"Device {dev['hostname']} is missing building so will not be imported.")
                 dev["field_validation"] = {
                     "reason": "Missing building assignment.",
                     "device_details": dev_details,
@@ -322,13 +322,13 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 continue
             try:
                 if self.job.kwargs.get("debug"):
-                    self.job.log_info(
-                        message=f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
+                    self.job.logger.info(
+                        f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
                     )
                 device_found = self.get(self.device, dev["hostname"])
                 if device_found:
-                    self.job.log_warning(
-                        message=f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']} so will not be imported."
+                    self.job.logger.warning(
+                        f"Duplicate device attempting to be loaded for {dev['hostname']} with ID: {dev['id']} so will not be imported."
                     )
                     dev["field_validation"] = {
                         "reason": "Failed due to duplicate device found.",
@@ -357,7 +357,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     self.add(new_dev)
                     self.load_ports(device_id=dev["id"], dev=new_dev)
                 except ValidationError as err:
-                    self.job.log_warning(message=f"Unable to load device {dev['hostname']}. {err}")
+                    self.job.logger.warning(f"Unable to load device {dev['hostname']}. {err}")
                     dev["field_validation"] = {
                         "reason": f"Failed validation. {err}",
                         "device_details": dev_details,
@@ -384,13 +384,13 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     },
                 )
                 if found_port:
-                    self.job.log_warning(
-                        message=f"Duplicate port attempting to be loaded, {port['portName']} for {dev.name}"
+                    self.job.logger.warning(
+                        f"Duplicate port attempting to be loaded, {port['portName']} for {dev.name}"
                     )
                 continue
             except ObjectNotFound:
                 if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Loading port {port['portName']} for {dev.name}. {port}")
+                    self.job.logger.info(f"Loading port {port['portName']} for {dev.name}. {port}")
                 port_type = self.conn.get_port_type(port_info=port)
                 port_status = self.conn.get_port_status(port_info=port)
                 new_port = self.port(
@@ -422,7 +422,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                                 primary=primary,
                             )
                 except ValidationError as err:
-                    self.job.log_warning(message=f"Unable to load port {port['portName']} for {dev.name}. {err}")
+                    self.job.logger.warning(f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
     def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool, tenant:str):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
@@ -446,12 +446,12 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         try:
             ip_found = self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
             if ip_found:
-                self.job.log_warning(
-                    message=f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
+                self.job.logger.warning(
+                    f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
                 )
         except ObjectNotFound:
             if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Loading IP Address {address} for {device_name} on {interface}.")
+                self.job.logger.info(f"Loading IP Address {address} for {device_name} on {interface}.")
             new_ip = self.ipaddress(
                 address=address,
                 device=device_name,
@@ -467,8 +467,8 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
         self.load_locations()
         self.load_devices()
         if self.failed_import_devices:
-            self.job.log_warning(
-                message=f"List of {len(self.failed_import_devices)} devices that were unable to be loaded. {json.dumps(self.failed_import_devices, indent=2)}"
+            self.job.logger.warning(
+                f"List of {len(self.failed_import_devices)} devices that were unable to be loaded. {json.dumps(self.failed_import_devices, indent=2)}"
             )
         else:
-            self.job.log_info(message="There weren't any failed device loads. Congratulations!")
+            self.job.logger.info("There weren't any failed device loads. Congratulations!")

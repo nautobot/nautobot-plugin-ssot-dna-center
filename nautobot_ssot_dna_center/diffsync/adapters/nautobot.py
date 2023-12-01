@@ -67,7 +67,7 @@ class NautobotAdapter(DiffSync):
             for region in locations:
                 try:
                     self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
-                    self.job.log_warning(message=f"Region {region.name} already loaded so skipping duplicate.")
+                    self.job.logger.warning(f"Region {region.name} already loaded so skipping duplicate.")
                 except ObjectNotFound:
                     new_region = self.area(
                         name=region.name,
@@ -76,8 +76,8 @@ class NautobotAdapter(DiffSync):
                     )
                     self.add(new_region)
         except OrmLocationType.DoesNotExist as err:
-            self.job.log_warning(
-                message=f"Unable to find LocationType: Region so can't find region Locations to load. {err}"
+            self.job.logger.warning(
+                f"Unable to find LocationType: Region so can't find region Locations to load. {err}"
             )
 
     def load_sites(self):
@@ -100,8 +100,8 @@ class NautobotAdapter(DiffSync):
                     )
                     self.add(new_building)
         except OrmLocationType.DoesNotExist as err:
-            self.job.log_warning(
-                message=f"Unable to find LocationType: Site so can't find site Locations to load. {err}"
+            self.job.logger.warning(
+                f"Unable to find LocationType: Site so can't find site Locations to load. {err}"
             )
 
     def load_floors(self):
@@ -122,12 +122,12 @@ class NautobotAdapter(DiffSync):
                         building = self.get(self.building, location.site.name)
                         building.add_child(new_floor)
                 except ObjectNotFound as err:
-                    self.job.log_warning(
-                        message=f"Unable to load building {location.site.name} for floor {location.name}. {err}"
+                    self.job.logger.warning(
+                        f"Unable to load building {location.site.name} for floor {location.name}. {err}"
                     )
         except OrmLocationType.DoesNotExist as err:
-            self.job.log_warning(
-                message=f"Unable to find LocationType: Floor so can't find floor Locations to load. {err}"
+            self.job.logger.warning(
+                f"Unable to find LocationType: Floor so can't find floor Locations to load. {err}"
             )
 
     def load_devices(self):
@@ -209,16 +209,16 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-        # self.job.log_info(message="Sync is complete. Labelling imported objects from DNA Center.")
+        # self.job.logger.info("Sync is complete. Labelling imported objects from DNA Center.")
         # source.label_imported_objects(target=self)
 
         for grouping in ["ports", "devices", "floors", "sites", "regions"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
-                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    self.job.logger.info(f"Deleting {nautobot_obj}.")
                     nautobot_obj.delete()
                 except ProtectedError:
-                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+                    self.job.logger.info(f"Deletion failed protected object: {nautobot_obj}")
             self.objects_to_delete[grouping] = []
         return super().sync_complete(source, *args, **kwargs)
 
