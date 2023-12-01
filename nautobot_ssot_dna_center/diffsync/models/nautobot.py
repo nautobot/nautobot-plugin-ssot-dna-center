@@ -14,7 +14,7 @@ from nautobot.dcim.models import (
 )
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status, Role
-from nautobot.ipam.models import IPAddress
+from nautobot.ipam.models import IPAddress, IPAddressToInterface , Prefix, Namespace
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
 from nautobot_ssot_dna_center.utils.nautobot import add_software_lcm, assign_version_to_device, verify_platform
@@ -342,6 +342,52 @@ class NautobotPort(base.Port):
         self.diffsync.objects_to_delete["ports"].append(port)
         return self
 
+
+class NautobotPrefix(base.Prefix):
+    """Nautobot implemention of DNAC Prefix model"""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Prefix in Nautobot from NautobotManagementPrefix objects."""
+        namespace = Namespace.objects.get_or_create(name=ids["namespace"])[0]
+        diffsync.namespace_map[ids["namespace"]] = namespace.id
+        try:
+            new_prefix = diffsync.prefix_map[ids["namespace"]][ids["prefix"]]
+        except:
+            if diffsync.job.debug:
+                diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
+            new_prefix = Prefix(
+                prefix=ids["prefix"]
+                namespace_id=namespace.id
+            )
+            if attrs.get("tenant"):
+                new_prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_prefix.custom_field_data.update({"system_of_record": "DNA Center"})
+            new_prefix.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+            if ids["namespace"] not in diffsync.prefix_map:
+                diffsync.prefix_map[ids["namespace"]] = {}
+                diffsync.prefix_map[ids["namespace"]][ids["prefix"]] = new_prefix.id
+            new_prefix.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(cls, diffsync, ids, attrs):
+        prefix = Prefix.objects.get(id=self.uuid)
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                prefix.tenant = None
+        prefix.validated_save()
+        return super().update(attrs)
+
+    def delete(self):
+        try:
+            prefix = Prefix.objects.get(id=self.uuid)
+            super().delete()
+            return self
+        except Prefix.DoesNotExist as err:
+            if self.diffsync.log.debug:
+                self.diffsync.job.logger.waring(f"Unable to find Prefix {self.prefix} {self.uuid} for deletion. {err}")
 
 class NautobotIPAddress(base.IPAddress):
     """Nautobot implementation of the IPAddress DiffSync model."""

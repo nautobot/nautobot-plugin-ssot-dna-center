@@ -18,6 +18,8 @@ from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.extras.models import Relationship as OrmRelationship
 from nautobot.extras.models import RelationshipAssociation as OrmRelationshipAssociation
 from nautobot.ipam.models import IPAddress as OrmIPAddress
+from nautobot.ipam.models import Namespace as OrmNamespace
+from nautobot.ipam.models import Prefix as OrmPrefix
 
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
@@ -26,6 +28,7 @@ from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotFloor,
     NautobotIPAddress,
     NautobotPort,
+    NautobotPrefix,
 )
 
 
@@ -37,9 +40,12 @@ class NautobotAdapter(DiffSync):
     floor = NautobotFloor
     device = NautobotDevice
     port = NautobotPort
+    prefix = NautobotPrefix
     ipaddress = NautobotIPAddress
 
-    top_level = ["area", "building", "device", "ipaddress"]
+    top_level = ["area", "building", "device", "prefix", "ipaddress"]
+
+    prefix_map = {}
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -170,6 +176,16 @@ class NautobotAdapter(DiffSync):
             self.add(new_port)
             device = self.get(self.device, port.device.name)
             device.add_child(new_port)
+
+    def load_prefixes(self):
+        """Load Prefix data from Nautobot into DiffSync models."""
+        for prefixes in OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+            new_prefix = self.prefix(
+                prefix=str(prefixes.prefix),
+                namespace=prefixes.namespace.name,
+                uuid=prefix.id
+            )
+            self.add(new_prefix)
 
     def load_ipaddresses(self):
         """Load IPAddress data from Nautobot into DiffSync models."""
