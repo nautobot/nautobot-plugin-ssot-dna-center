@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import List
 import json
+from netutils.ip import ipaddress_interface
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.conf import settings
@@ -20,6 +21,7 @@ from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterBuilding,
     DnaCenterDevice,
     DnaCenterFloor,
+    DnaCenterPrefix,
     DnaCenterIPAddress,
     DnaCenterPort,
 )
@@ -85,9 +87,10 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
     floor = DnaCenterFloor
     device = DnaCenterDevice
     port = DnaCenterPort
+    prefix = DnaCenterPrefix
     ipaddress = DnaCenterIPAddress
 
-    top_level = ["area", "building", "device", "ipaddress"]
+    top_level = ["area", "building", "device", "prefix", "ipaddress"]
 
     def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, tenant: Tenant, **kwargs):
         """Initialize DNA Center.
@@ -421,7 +424,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 except ValidationError as err:
                     self.job.log_warning(message=f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
-    def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool):
+    def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool, tenant:str):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
 
         Args:
@@ -430,6 +433,16 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             address (str): IP Address to be loaded.
             primary (bool): Whether the IP Address is the primary IP for the Device.
         """
+        addr = ipaddress_interface(ipaddress, "with_prefixlen")
+        try:
+            self.get(self.prefix, {"prefix": addr, "namespace": tenant})
+        except ObjectNotFound:
+            new_prefix = self.prefix(
+                prefix=addr,
+                namespace=tenant,
+                uuid=None,
+            )
+            self.add(new_prefix)
         try:
             ip_found = self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
             if ip_found:
