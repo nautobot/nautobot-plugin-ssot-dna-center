@@ -6,7 +6,7 @@ from nautobot.core.api import WritableNestedSerializer
 from nautobot_ssot_dna_center import models
 
 
-class DNACInstanceNestedSerializer(WritableNestedSerializer):
+class DNACInstanceNestedSerializer(WritableNestedSerializer): # pylint: disable=too-many-ancestors
     """DNACInstance Nested Serializer."""
 
     url = serializers.HyperlinkedIdentityField(view_name="plugins-api:nautobot_ssot_dna_center-api:dnacinstance-detail")

@@ -14,7 +14,7 @@ from nautobot.dcim.models import (
 )
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status, Role
-from nautobot.ipam.models import IPAddress, IPAddressToInterface , Prefix, Namespace
+from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix, Namespace
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
 from nautobot_ssot_dna_center.utils.nautobot import add_software_lcm, assign_version_to_device, verify_platform
@@ -36,15 +36,18 @@ class NautobotArea(base.Area):
         try:
             Location.objects.get(name=ids["name"])
             diffsync.job.logger.warning(f"Region {ids['name']} already exists so won't be created.")
-        except Region.DoesNotExist:
+        except Location.DoesNotExist:
             diffsync.job.logger.info(f"Creating Region {ids['name']}.")
+            loc_type = LocationType.objects.get(name="Region")
             new_region = Location(
                 name=ids["name"],
+                location_type=loc_type,
+                status=Status.objects.get(name="Active"),
             )
             if ids.get("parent"):
                 try:
                     new_region.parent = Location.objects.get(name=ids["parent"])
-                except Region.DoesNotExist as err:
+                except Location.DoesNotExist as err:
                     diffsync.job.logger.warning(f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
             new_region.validated_save()
             return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -57,8 +60,10 @@ class NautobotBuilding(base.Building):
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from Building object."""
         diffsync.job.logger.info(f"Creating Site {ids['name']}.")
+        loc_type = LocationType.objects.get(name="Site")
         new_site = Location(
             name=ids["name"],
+            location_type=loc_type,
             physical_address=attrs["address"] if attrs.get("address") else "",
             status=Status.objects.get(name="Active"),
             latitude=attrs["latitude"],
@@ -68,8 +73,8 @@ class NautobotBuilding(base.Building):
             new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
         try:
             if attrs.get("area"):
-                new_site.region = Location.objects.get(name=attrs["area"])
-        except Region.DoesNotExist:
+                new_site.parent = Location.objects.get(name=attrs["area"])
+        except Location.DoesNotExist:
             diffsync.job.logger.info(f"Unable to find parent {attrs['area']}")
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -86,7 +91,7 @@ class NautobotBuilding(base.Building):
         if "address" in attrs:
             site.physical_address = attrs["address"]
         if "area" in attrs:
-            site.region = Region.objects.get(name=attrs["area"])
+            site.parent = Location.objects.get(name=attrs["area"])
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
@@ -119,19 +124,11 @@ class NautobotFloor(base.Floor):
     def create(cls, diffsync, ids, attrs):
         """Create LocationType: Floor in Nautobot from Floor object."""
         diffsync.job.logger.info(f"Creating Floor {ids['name']}.")
-        loc_type, created = LocationType.objects.get_or_create(
-            name="Floor",
-            nestable=False,
-        )
-        if created:
-            loc_type.content_types.add(ContentType.objects.get_for_model(Device))
-            loc_type.content_types.add(ContentType.objects.get_for_model(Rack))
-            loc_type.content_types.add(ContentType.objects.get_for_model(RackGroup))
-        loc_type.validated_save()
+        loc_type = LocationType.objects.get(name="Floor")
         new_floor = Location(
             name=ids["name"],
             status=Status.objects.get(name="Active"),
-            site=Site.objects.get(name=ids["building"]),
+            parent=Location.objects.get(name=ids["building"]),
             location_type=loc_type,
         )
         if attrs.get("tenant"):
@@ -154,7 +151,7 @@ class NautobotFloor(base.Floor):
     def delete(self):
         """Delete LocationType: Floor in Nautobot from Floor object."""
         floor = Location.objects.get(id=self.uuid)
-        self.diffsync.job.logger.info(f"Deleting Floor {floor.name} in {floor.site.name}.")
+        self.diffsync.job.logger.info(f"Deleting Floor {floor.name} in {floor.parent.name}.")
         self.diffsync.objects_to_delete["floors"].append(floor)
         return self
 
@@ -187,7 +184,7 @@ class NautobotDevice(base.Device):
         if attrs.get("floor"):
             loc_type = LocationType.objects.get(name="Floor")
             loc, _ = Location.objects.get_or_create(
-                name=attrs["floor"], location_type=loc_type, location=site, status=Status.objects.get(name="Active")
+                name=attrs["floor"], location_type=loc_type, parent=site, status=Status.objects.get(name="Active")
             )
             new_device.location = loc
         if attrs.get("tenant"):
@@ -202,7 +199,7 @@ class NautobotDevice(base.Device):
             field.content_types.add(ContentType.objects.get_for_model(Device))
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.slug, version=attrs["version"])
+                lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.name, version=attrs["version"])
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.custom_field_data.update({"system_of_record": "DNA Center"})
         new_device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
@@ -350,8 +347,8 @@ class NautobotPrefix(base.Prefix):
             if diffsync.job.debug:
                 diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
             new_prefix = Prefix(
-                prefix=ids["prefix"]
-                namespace_id=namespace.id
+                prefix=ids["prefix"],
+                namespace_id=namespace.id,
             )
             if attrs.get("tenant"):
                 new_prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
@@ -409,9 +406,7 @@ class NautobotIPAddress(base.IPAddress):
                     device.primary_ip4 = new_ip
                 device.validated_save()
         except Device.DoesNotExist as err:
-            diffsync.job.logger.warning(
-                f"Unable to find Device {ids['device']} for IPAddress {ids['address']}. {err}"
-            )
+            diffsync.job.logger.warning(f"Unable to find Device {ids['device']} for IPAddress {ids['address']}. {err}")
             return None
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 

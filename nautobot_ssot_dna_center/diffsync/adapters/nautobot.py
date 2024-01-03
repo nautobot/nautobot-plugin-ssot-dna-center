@@ -92,7 +92,7 @@ class NautobotAdapter(DiffSync):
                     new_building = self.building(
                         name=site.name,
                         address=site.physical_address,
-                        area=site.region.name if site.region else "",
+                        area=site.parent.name if site.parent else "",
                         latitude=str(site.latitude).rstrip("0"),
                         longitude=str(site.longitude).rstrip("0"),
                         tenant=site.tenant.name if site.tenant else None,
@@ -100,9 +100,7 @@ class NautobotAdapter(DiffSync):
                     )
                     self.add(new_building)
         except OrmLocationType.DoesNotExist as err:
-            self.job.logger.warning(
-                f"Unable to find LocationType: Site so can't find site Locations to load. {err}"
-            )
+            self.job.logger.warning(f"Unable to find LocationType: Site so can't find site Locations to load. {err}")
 
     def load_floors(self):
         """Load LocationType floors from Nautobot into DiffSync models."""
@@ -112,23 +110,21 @@ class NautobotAdapter(DiffSync):
             for location in locations:
                 new_floor = self.floor(
                     name=location.name,
-                    building=location.site.name if location.site else "",
+                    building=location.parent.name if location.parent else "",
                     tenant=location.tenant.name if location.tenant else None,
                     uuid=location.id,
                 )
                 self.add(new_floor)
                 try:
-                    if location.site:
-                        building = self.get(self.building, location.site.name)
+                    if location.parent:
+                        building = self.get(self.building, location.parent.name)
                         building.add_child(new_floor)
                 except ObjectNotFound as err:
                     self.job.logger.warning(
-                        f"Unable to load building {location.site.name} for floor {location.name}. {err}"
+                        f"Unable to load building {location.parent.name} for floor {location.name}. {err}"
                     )
         except OrmLocationType.DoesNotExist as err:
-            self.job.logger.warning(
-                f"Unable to find LocationType: Floor so can't find floor Locations to load. {err}"
-            )
+            self.job.logger.warning(f"Unable to find LocationType: Floor so can't find floor Locations to load. {err}")
 
     def load_devices(self):
         """Load Device data from Nautobot into DiffSync models."""
@@ -148,7 +144,7 @@ class NautobotAdapter(DiffSync):
                 role=dev.role.name,
                 vendor=dev.device_type.manufacturer.name,
                 model=dev.device_type.model,
-                site=dev.location.parent.name if dev.location.parent else None,
+                location=dev.location.parent.name if dev.location.parent else None,
                 floor=dev.location.name if dev.location else None,
                 serial=dev.serial,
                 version=version,
@@ -180,11 +176,7 @@ class NautobotAdapter(DiffSync):
     def load_prefixes(self):
         """Load Prefix data from Nautobot into DiffSync models."""
         for prefixes in OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center"):
-            new_prefix = self.prefix(
-                prefix=str(prefixes.prefix),
-                namespace=prefixes.namespace.name,
-                uuid=prefix.id
-            )
+            new_prefix = self.prefix(prefix=str(prefixes.prefix), namespace=prefixes.namespace.name, uuid=prefix.id)
             self.add(new_prefix)
 
     def load_ipaddresses(self):
@@ -229,4 +221,5 @@ class NautobotAdapter(DiffSync):
         self.load_floors()
         self.load_devices()
         self.load_ports()
+        self.load_prefixes()
         self.load_ipaddresses()

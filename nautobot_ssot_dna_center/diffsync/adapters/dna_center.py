@@ -37,7 +37,6 @@ class LabelMixin:
         cf_dict = {
             "type": CustomFieldTypeChoices.TYPE_DATE,
             "name": "ssot_last_synchronized",
-            "slug": "ssot_last_synchronized",
             "label": "Last sync from System of Record",
         }
         custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
@@ -424,7 +423,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 except ValidationError as err:
                     self.job.logger.warning(f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
-    def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool, tenant:str):
+    def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool, tenant: str):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
 
         Args:

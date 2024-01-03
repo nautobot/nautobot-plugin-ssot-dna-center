@@ -114,6 +114,7 @@ class Port(DiffSyncModel):
 
     uuid: Optional[UUID]
 
+
 class Prefix(DiffSyncModel):
     """DiffSync Model for DNA Center prefixes."""
 
@@ -124,8 +125,9 @@ class Prefix(DiffSyncModel):
 
     prefix: str
     namespace: str
-    tenant: Optional[str] 
+    tenant: Optional[str]
     uuid: Optional[UUID]
+
 
 class IPAddress(DiffSyncModel):
     """DiffSync model for DNA Center IP addresses."""
@@ -136,7 +138,7 @@ class IPAddress(DiffSyncModel):
     _children = {}
 
     address: str
-    prefix : str
+    prefix: str
     interface: str
     device: str
     primary: bool

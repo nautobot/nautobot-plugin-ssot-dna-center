@@ -4,7 +4,6 @@ from nautobot.tenancy.models import Tenant
 from nautobot.core.forms import (
     BootstrapMixin,
     BulkEditForm,
-    SlugField,
 )
 
 from nautobot_ssot_dna_center import models
@@ -13,13 +12,11 @@ from nautobot_ssot_dna_center import models
 class DNACInstanceForm(BootstrapMixin, forms.ModelForm):
     """DNACInstance creation/edit form."""
 
-    slug = SlugField()
-
     class Meta:
         """Meta attributes."""
 
         model = models.DNACInstance
-        fields = ["name", "slug", "description", "host_url", "port", "verify", "auth_group", "tenant"]
+        fields = ["name", "description", "host_url", "port", "verify", "auth_group", "tenant"]
 
 
 class DNACInstanceBulkEditForm(BootstrapMixin, BulkEditForm):
@@ -42,10 +39,9 @@ class DNACInstanceFilterForm(BootstrapMixin, forms.ModelForm):
     q = forms.CharField(
         required=False,
         label="Search",
-        help_text="Search within Name or Slug.",
+        help_text="Search within Name.",
     )
     name = forms.CharField(required=False, label="Name")
-    slug = forms.CharField(required=False, label="Slug")
     port = forms.IntegerField(required=False, label="Port")
     verify = forms.BooleanField(required=True, label="Verify SSL")
     auth_group = forms.MultipleChoiceField(required=False, label="Secrets Group")
@@ -56,7 +52,7 @@ class DNACInstanceFilterForm(BootstrapMixin, forms.ModelForm):
 
         model = models.DNACInstance
         # Define the fields above for ordering and widget purposes
-        fields = ["q", "name", "slug", "port", "verify", "auth_group", "tenant"]
+        fields = ["q", "name", "port", "verify", "auth_group", "tenant"]
 
 
 class DNACInstanceCSVImportForm(BootstrapMixin, forms.ModelForm):

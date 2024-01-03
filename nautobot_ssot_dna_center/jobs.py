@@ -4,7 +4,8 @@ from django.urls import reverse
 from django.templatetags.static import static
 from diffsync import DiffSyncFlags
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
-from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar
+from nautobot.extras.jobs import BooleanVar, MultiObjectVar
+from nautobot.core.celery import register_jobs
 from nautobot_ssot.jobs.base import DataSource, DataMapping
 from nautobot_ssot_dna_center.diffsync.adapters import dna_center, nautobot
 from nautobot_ssot_dna_center.models import DNACInstance
@@ -14,7 +15,7 @@ from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 name = "DNA Center SSoT"  # pylint: disable=invalid-name
 
 
-class DnaCenterDataSource(DataSource, Job):
+class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attributes
     """DNA Center SSoT Data Source."""
 
     instances = MultiObjectVar(
@@ -59,8 +60,8 @@ class DnaCenterDataSource(DataSource, Job):
 
     def load_source_adapter(self):
         """Load data from DNA Center into DiffSync models."""
-        for instance in self.kwargs["instances"]:
-            self.log_info(message=f"Loading data from {instance.name}")
+        for instance in self.instances:
+            self.logger(f"Loading data from {instance.name}")
             _sg = instance.auth_group
             username = _sg.get_secret_value(
                 access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
@@ -88,18 +89,17 @@ class DnaCenterDataSource(DataSource, Job):
         self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
         self.target_adapter.load()
 
+    def run(self, dryrun, memory_profiling, instances, debug, *args, **kwargs):  # pylint: disable=arguments-differ
+        """Perform data synchronization."""
+        self.instances = instances
+        self.debug = debug
+        self.dryrun = dryrun
+        self.memory_profiling = memory_profiling
+        super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)
+
     def execute_sync(self):
         """Execute the synchronization of data from DNA Center to Nautobot."""
 
-    def post_run(self):
-        """Execute sync after Job is complete so the transactions are not atomic."""
-        if not self.kwargs["dry_run"]:
-            self.log_info(message="Beginning synchronization of data from DNA Center into Nautobot.")
-            if self.source_adapter is not None and self.target_adapter is not None:
-                self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
-            else:
-                self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
-        self.log_info(message="Synchronization from DNA Center into Nautobot is complete.")
-
 
 jobs = [DnaCenterDataSource]
+register_jobs(*jobs)

@@ -87,14 +87,16 @@ class DnaCenterPort(Port):
         """Delete Interface in DNA Center from Port object."""
         return self
 
+
 class DnaCenterPrefix(Prefix):
     """DNA Center implementation of Prefix Diffsync model."""
+
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Prefix in Dna Center from Prefix Diffsync model."""
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
-    def update(self.attrs):
+    def update(self, attrs):
         """Update Prefix in DNA Center from Prefix object."""
         return super().update(attrs)
 

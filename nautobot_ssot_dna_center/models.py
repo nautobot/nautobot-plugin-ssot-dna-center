@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 
-from nautobot.core.models.fields import AutoSlugField
+
 from nautobot.core.models.generics import PrimaryModel
 
 
@@ -12,7 +12,6 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
     """Base model for Nautobot SSoT for Cisco DNA Center plugin."""
 
     name = models.CharField(max_length=100, unique=True)
-    slug = AutoSlugField(populate_from="name", unique=True)
     description = models.CharField(max_length=200, blank=True)
     host_url = models.CharField(
         max_length=255, blank=True, help_text="URL to DNAC instance including protocol.", verbose_name="Host URL"
@@ -36,7 +35,7 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
         verbose_name="Secrets Group",
     )
 
-    csv_headers = ["name", "slug", "description", "host_url", "port", "verify", "tenant"]
+    csv_headers = ["name", "description", "host_url", "port", "verify", "tenant"]
 
     class Meta:
         """Meta class."""
@@ -45,9 +44,9 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
         verbose_name = "DNA Center Instance"
         verbose_name_plural = "DNA Center Instances"
 
-    def get_absolute_url(self):
+    def get_absolute_url(self, api=False):  # pylint: disable=unused-argument
         """Return detail view for DNACInstance."""
-        return reverse("plugins:nautobot_ssot_dna_center:dnacinstance", args=[self.slug])
+        return reverse("plugins:nautobot_ssot_dna_center:dnacinstance")
 
     def __str__(self):
         """Stringify instance."""
@@ -55,7 +54,7 @@ class DNACInstance(PrimaryModel):  # pylint: disable=too-many-ancestors
 
     def to_csv(self):
         """Export model fields to CSV file."""
-        return (self.name, self.slug, self.description, self.host_url, self.port, self.verify, self.tenant)
+        return (self.name, self.description, self.host_url, self.port, self.verify, self.tenant)
 
     def clean(self):
         """Validate all required object attributes have been defined or throw ValidationError."""

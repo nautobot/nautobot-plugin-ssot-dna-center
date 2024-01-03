@@ -25,7 +25,7 @@ class DNACInstanceFilterSet(BaseFilterSet, NameSearchFilterSet):
         model = models.DNACInstance
 
         # add any fields from the model that you would like to filter your searches by using those
-        fields = ["id", "name", "slug", "description", "port"]
+        fields = ["id", "name", "description", "port"]
         default_columns = (
             "pk",
             "name",

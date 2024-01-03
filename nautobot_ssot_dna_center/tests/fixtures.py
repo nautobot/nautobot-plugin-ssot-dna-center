@@ -31,6 +31,6 @@ EXPECTED_FLOORS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expe
 def create_dnacinstance():
     """Fixture to create necessary number of DNACInstance for tests."""
     url = "http://dnac.testexample.com"
-    DNACInstance.objects.create(name="Test One", slug="test-one", port=443, host_url=url)
-    DNACInstance.objects.create(name="Test Two", slug="test-two", port=443, host_url=url)
-    DNACInstance.objects.create(name="Test Three", slug="test-three", port=443, host_url=url)
+    DNACInstance.objects.create(name="Test One", port=443, host_url=url)
+    DNACInstance.objects.create(name="Test Two", port=443, host_url=url)
+    DNACInstance.objects.create(name="Test Three", port=443, host_url=url)
