@@ -11,26 +11,22 @@ class TestDNACInstance(TestCase):
         """Create with only required fields, and validate null description and __str__."""
         dnacinstance = models.DNACInstance.objects.create(
             name="Development",
-            slug="development",
             host_url="https://dnac.testexample.com",
         )
         self.assertEqual(dnacinstance.name, "Development")
         self.assertEqual(dnacinstance.description, "")
         self.assertEqual(str(dnacinstance), "Development")
-        self.assertEqual(dnacinstance.slug, "development")
 
     def test_create_dnacinstance_all_fields_success(self):
         """Create DNACInstance with all fields."""
-        tenant = Tenant.objects.create(name="Dev", slug="dev")
+        tenant = Tenant.objects.create(name="Dev")
         dnacinstance = models.DNACInstance.objects.create(
             name="Development",
-            slug="development",
             description="Development Test",
             host_url="https://dnac.testexample.com",
             tenant=tenant,
         )
         self.assertEqual(dnacinstance.name, "Development")
-        self.assertEqual(dnacinstance.slug, "development")
         self.assertEqual(dnacinstance.description, "Development Test")
         self.assertTrue(dnacinstance.verify)
         self.assertEqual(dnacinstance.tenant.name, "Dev")
@@ -39,7 +35,6 @@ class TestDNACInstance(TestCase):
         """Test the to_csv() method to ensure it returns the correct data from the DNACInstance model."""
         expected_data = (
             "Test Instance",
-            "test_instance",
             "Test description",
             "https://dnac.testexample.com",
             443,
@@ -48,7 +43,6 @@ class TestDNACInstance(TestCase):
         )
         actual_instance = models.DNACInstance(
             name="Test Instance",
-            slug="test_instance",
             description="Test description",
             host_url="https://dnac.testexample.com",
             port=443,

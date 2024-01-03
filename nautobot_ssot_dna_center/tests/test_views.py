@@ -1,5 +1,5 @@
 """Unit tests for views."""
-from nautobot.utilities.testing import ViewTestCases
+from nautobot.core.testing import ViewTestCases
 from nautobot_ssot_dna_center import models
 from nautobot_ssot_dna_center.tests import fixtures
 
@@ -12,7 +12,6 @@ class DNACInstanceViewTest(ViewTestCases.PrimaryObjectViewTestCase):
     bulk_edit_data = {"description": "Bulk edit views"}
     form_data = {
         "name": "Test 1",
-        "slug": "test-1",
         "description": "Initial model",
         "port": 443,
         "host_url": "https://dnac.testexample.com",

@@ -1,5 +1,5 @@
 """Unit tests for nautobot_ssot_dna_center."""
-from nautobot.utilities.testing import APIViewTestCases
+from nautobot.core.testing import APIViewTestCases
 from nautobot_ssot_dna_center import models
 from nautobot_ssot_dna_center.tests import fixtures
 
@@ -10,8 +10,8 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
 
     model = models.DNACInstance
     create_data = [
-        {"name": "Test Model 1", "slug": "test-model-1", "port": 443, "host_url": "https://dnac.testexample.com"},
-        {"name": "Test Model 2", "slug": "test-model-2", "port": 443, "host_url": "https://dnac.testexample.com"},
+        {"name": "Test Model 1", "port": 443, "host_url": "https://dnac.testexample.com"},
+        {"name": "Test Model 2", "port": 443, "host_url": "https://dnac.testexample.com"},
     ]
     bulk_update_data = {"description": "Test Bulk Update"}
     brief_fields = [
@@ -25,7 +25,6 @@ class DNACInstanceAPIViewTest(APIViewTestCases.APIViewTestCase):
         "last_updated",
         "name",
         "port",
-        "slug",
         "tenant",
         "url",
         "verify",
