@@ -94,9 +94,10 @@ class TestDnaCenterAdapterTestCase(
         self.intf = Interface.objects.create(name="Vlan823", type="virtual", device=self.test_dev, status=self.status_active)
         self.intf.validated_save()
 
-        self.namespace = Namespace.objects.get(
-            name="CN/LB"
-        )
+        self.namespace = Namespace.objects.get_or_create(
+            name="Global"
+        )[0]
+        
         self.prefix = Prefix.objects.create(
             prefix="10.10.20.0/24",
             status=self.status_active,

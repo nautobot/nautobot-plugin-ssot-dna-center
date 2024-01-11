@@ -146,6 +146,21 @@ class IPAddress(DiffSyncModel):
 
     uuid: Optional[UUID]
 
+class IPAddressOnInterface(DiffSyncModel):
+    """DiffSync model for DNA Center tracking IPAddress on particular Device interfaces."""
+
+    _modelname = "ip_on_intf"
+    _identifiers = ("address", "device", "port")
+    _attributes = ("primary",)
+    _children = {}
+
+    address: str
+    device: str
+    port: str
+    primary: bool
+
+    uuid: Optional[UUID]
+
 
 Area.update_forward_refs()
 Building.update_forward_refs()

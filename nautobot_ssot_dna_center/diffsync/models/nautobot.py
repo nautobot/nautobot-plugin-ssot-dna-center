@@ -390,21 +390,15 @@ class NautobotIPAddress(base.IPAddress):
             intf = Interface.objects.get(name=ids["interface"], device=device)
             new_ip = IPAddress(
                 address=ids["address"],
-                assigned_object_type=ContentType.objects.get_for_model(Interface),
-                assigned_object_id=intf.id,
+                parent=Prefix.objects.get(prefix=ids["prefix"]),
                 status=Status.objects.get(name="Active"),
+                namespace=Namespace.objects.get_or_create(name=attrs["tenant"])
             )
             if attrs.get("tenant"):
                 new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
             new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
             new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
             new_ip.validated_save()
-            if attrs.get("primary"):
-                if ":" in ids["address"]:
-                    device.primary_ip6 = new_ip
-                else:
-                    device.primary_ip4 = new_ip
-                device.validated_save()
         except Device.DoesNotExist as err:
             diffsync.job.logger.warning(f"Unable to find Device {ids['device']} for IPAddress {ids['address']}. {err}")
             return None
@@ -413,13 +407,6 @@ class NautobotIPAddress(base.IPAddress):
     def update(self, attrs):
         """Update IPAddress in Nautobot from IPAddress object."""
         ipaddr = IPAddress.objects.get(id=self.uuid)
-        if attrs.get("primary"):
-            device = ipaddr.assigned_object.device
-            if ":" in self.address:
-                device.primary_ip6 = ipaddr
-            else:
-                device.primary_ip4 = ipaddr
-            device.validated_save()
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 ipaddr.tenant = Tenant.objects.get(name=attrs["tenant"])
@@ -435,4 +422,45 @@ class NautobotIPAddress(base.IPAddress):
         ipaddr = IPAddress.objects.get(id=self.uuid)
         super().delete()
         ipaddr.delete()
+        return self
+
+class NautobotIPAddressOnInterface(base.IPAddressOnInterface):
+    """Nautobot implementation of DNA Center IPAddressOnInterface model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IPAddressToInterface in Nautobot from IPAddressOnInterface object."""
+        new_map = IPAddressToInterface(
+            ip_address=IPAddress.objects.get(address=ids["address"]),
+            interface=Interface.objects.get(name=ids["port"], device__name=ids["device"]),
+        )
+        new_map.validated_save()
+        if attrs.get("primary"):
+            if new_map.ip_address.ip_version == 4:
+                new_map.interface.device.primary_ip4 = new_map.ip_address
+            else:
+                new_map.interface.device.primary_ip6 = new_map.ip_address
+            new_map.interface.device.validated_save()
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IP Address in Nautobot from IPAddressOnInterface object."""
+        mapping = IPAddressToInterface.objects.get(id=self.uuid)
+        if attrs.get("primary"):
+            if mapping.ip_address.ip_version == 4:
+                mapping.interface.device.primary_ip4 = mapping.ip_address
+            else:
+                mapping.interface.device.primary_ip6 = mapping.ip_address
+            mapping.interface.device.validated_save()
+        mapping.validated_save()
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IPAddressToInterface in Nautobot from NautobotIPAddressOnInterface object."""
+        mapping = IPAddressToInterface.objects.get(id=self.uuid)
+        super().delete()
+        self.diffsync.job.logger.info(
+            f"Deleting IPAddress to Interface mapping between {self.address} and {self.device}'s {self.port} port."
+        )
+        mapping.delete()
         return self

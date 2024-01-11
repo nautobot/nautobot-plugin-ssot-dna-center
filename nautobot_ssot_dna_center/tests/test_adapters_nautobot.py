@@ -171,8 +171,6 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         leaf1_ip = IPAddress.objects.create(
             address="10.10.10.1/24",
             status=self.status_active,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            assigned_object_id=leaf1_mgmt.id,
         )
         leaf1_ip.custom_field_data["system_of_record"] = "DNA Center"
         leaf1_ip.validated_save()

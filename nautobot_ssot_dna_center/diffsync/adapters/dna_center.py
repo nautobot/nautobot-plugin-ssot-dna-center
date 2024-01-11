@@ -131,7 +131,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             if not settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"].get("import_global"):
                 if location["name"] == "Global":
                     continue
-            if self.job.kwargs.get("debug"):
+            if self.job.debug:
                 self.job.logger.info(f"Loading area {location['name']}. {location}")
             parent_name = None
             if location.get("parentId") and location["parentId"] in self.dnac_location_map:
@@ -159,7 +159,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 self.job.logger.warning(f"Building {location['name']} already loaded so skipping.")
                 continue
             except ObjectNotFound:
-                if self.job.kwargs.get("debug"):
+                if self.job.debug:
                     self.job.logger.info(f"Loading building {location['name']}. {location}")
                 address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
                 latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
@@ -192,7 +192,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             floors (List[dict]): List of dictionaries containing location information about a floor.
         """
         for location in floors:
-            if self.job.kwargs.get("debug"):
+            if self.job.debug:
                 self.job.logger.info(f"Loading floor {location['name']}. {location}")
             if location["parentId"] in self.dnac_location_map:
                 _building = self.dnac_location_map[location["parentId"]]
@@ -320,7 +320,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 self.failed_import_devices.append(dev)
                 continue
             try:
-                if self.job.kwargs.get("debug"):
+                if self.job.debug:
                     self.job.logger.info(
                         f"Loading device {dev['hostname'] if dev.get('hostname') else dev['id']}. {dev}"
                     )
@@ -372,6 +372,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             dev (DnaCenterDevice): Device associated with ports.
         """
         ports = self.conn.get_port_info(device_id=device_id)
+        tenant=self.tenant
         for port in ports:
             try:
                 found_port = self.get(
@@ -388,7 +389,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     )
                 continue
             except ObjectNotFound:
-                if self.job.kwargs.get("debug"):
+                if self.job.debug:
                     self.job.logger.info(f"Loading port {port['portName']} for {dev.name}. {port}")
                 port_type = self.conn.get_port_type(port_info=port)
                 port_status = self.conn.get_port_status(port_info=port)
@@ -419,6 +420,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                                 interface=port["portName"],
                                 address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
                                 primary=primary,
+                                tenant=tenant,
                             )
                 except ValidationError as err:
                     self.job.logger.warning(f"Unable to load port {port['portName']} for {dev.name}. {err}")
@@ -432,13 +434,13 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             address (str): IP Address to be loaded.
             primary (bool): Whether the IP Address is the primary IP for the Device.
         """
-        addr = ipaddress_interface(ipaddress, "with_prefixlen")
+        addr = ipaddress_interface(address, "with_prefixlen")
         try:
             self.get(self.prefix, {"prefix": addr, "namespace": tenant})
         except ObjectNotFound:
             new_prefix = self.prefix(
                 prefix=addr,
-                namespace=tenant,
+                namespace=tenant if tenant != None else "Global",
                 uuid=None,
             )
             self.add(new_prefix)
@@ -449,7 +451,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
                 )
         except ObjectNotFound:
-            if self.job.kwargs.get("debug"):
+            if self.job.debug:
                 self.job.logger.info(f"Loading IP Address {address} for {device_name} on {interface}.")
             new_ip = self.ipaddress(
                 address=address,

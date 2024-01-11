@@ -4,11 +4,12 @@ from django.urls import reverse
 from django.templatetags.static import static
 from diffsync import DiffSyncFlags
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
-from nautobot.extras.jobs import BooleanVar, MultiObjectVar
+from nautobot.extras.jobs import BooleanVar, MultiObjectVar, ObjectVar
+from nautobot.extras.models import ExternalIntegration
+from nautobot.tenancy.models import Tenant
 from nautobot.core.celery import register_jobs
 from nautobot_ssot.jobs.base import DataSource, DataMapping
 from nautobot_ssot_dna_center.diffsync.adapters import dna_center, nautobot
-from nautobot_ssot_dna_center.models import DNACInstance
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
 
@@ -18,12 +19,9 @@ name = "DNA Center SSoT"  # pylint: disable=invalid-name
 class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attributes
     """DNA Center SSoT Data Source."""
 
-    instances = MultiObjectVar(
-        model=DNACInstance,
-        queryset=DNACInstance.objects.all(),
-        display_field="display_name",
-    )
+    dnac = ObjectVar(model=ExternalIntegration, queryset=ExternalIntegration.objects.all(), display_field="display_name", required=True, label="DNAC Instance")
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
+    tenant = ObjectVar(model=Tenant, label="Tenant", required=False)
 
     def __init__(self):
         """Initialize DNA Center Data Source."""
@@ -60,38 +58,38 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
 
     def load_source_adapter(self):
         """Load data from DNA Center into DiffSync models."""
-        for instance in self.instances:
-            self.logger(f"Loading data from {instance.name}")
-            _sg = instance.auth_group
-            username = _sg.get_secret_value(
-                access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
-                secret_type=SecretsGroupSecretTypeChoices.TYPE_USERNAME,
-            )
-            password = _sg.get_secret_value(
-                access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
-                secret_type=SecretsGroupSecretTypeChoices.TYPE_PASSWORD,
-            )
-            client = DnaCenterClient(
-                url=instance.host_url,
-                username=username,
-                password=password,
-                port=instance.port,
-                verify=instance.verify,
-            )
-            client.connect()
-            self.source_adapter = dna_center.DnaCenterAdapter(
-                job=self, sync=self.sync, client=client, tenant=instance.tenant
-            )
-            self.source_adapter.load()
+        self.logger(f"Loading data from {self.dnac.name}")
+        _sg = self.dnac.secrets_group
+        username = _sg.get_secret_value(
+            access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+            secret_type=SecretsGroupSecretTypeChoices.TYPE_USERNAME,
+        )
+        password = _sg.get_secret_value(
+            access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+            secret_type=SecretsGroupSecretTypeChoices.TYPE_PASSWORD,
+        )
+        client = DnaCenterClient(
+            url=self.dnac.remote_url,
+            username=username,
+            password=password,
+            port=self.dnac.extra_config["port"],
+            verify=self.dnac.ssl_verification,
+        )
+        client.connect()
+        self.source_adapter = dna_center.DnaCenterAdapter(
+            job=self, sync=self.sync, client=client, tenant=self.tenant
+        )
+        self.source_adapter.load()
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""
         self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
         self.target_adapter.load()
 
-    def run(self, dryrun, memory_profiling, instances, debug, *args, **kwargs):  # pylint: disable=arguments-differ
+    def run(self, dryrun, memory_profiling, debug, dnac, tenant, *args, **kwargs):  # pylint: disable=arguments-differ
         """Perform data synchronization."""
-        self.instances = instances
+        self.dnac = dnac
+        self.tenant = tenant
         self.debug = debug
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling

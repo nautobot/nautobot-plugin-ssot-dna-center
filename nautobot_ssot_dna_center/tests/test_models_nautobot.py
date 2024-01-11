@@ -53,7 +53,7 @@ class TestNautobotArea(TransactionTestCase):
         attrs = {}
         NautobotArea.create(self.diffsync, ids, attrs)
         self.diffsync.job.logger.warning.assert_called_once_with(
-            "Unable to find Region USA for TX. Region matching query does not exist."
+            "Unable to find Region USA for TX. Location matching query does not exist."
         )
 
 
