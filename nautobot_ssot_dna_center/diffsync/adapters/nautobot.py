@@ -29,6 +29,7 @@ from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotIPAddress,
     NautobotPort,
     NautobotPrefix,
+    NautobotIPAddressOnInterface
 )
 
 
@@ -42,8 +43,9 @@ class NautobotAdapter(DiffSync):
     port = NautobotPort
     prefix = NautobotPrefix
     ipaddress = NautobotIPAddress
+    ip_on_intf = NautobotIPAddressOnInterface
 
-    top_level = ["area", "building", "device", "prefix", "ipaddress"]
+    top_level = ["area", "building", "device", "prefix", "ipaddress", "ip_on_intf"]
 
     prefix_map = {}
 
@@ -185,12 +187,21 @@ class NautobotAdapter(DiffSync):
             new_ipaddr = self.ipaddress(
                 address=str(ipaddr.address),
                 prefix=str(ipaddr.parent.prefix),
-                device=ipaddr.interfaces.first().device.name if ipaddr.interfaces.first() else "",
-                primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
                 tenant=ipaddr.tenant.name if ipaddr.tenant else None,
                 uuid=ipaddr.id,
             )
             self.add(new_ipaddr)
+
+    def load_ipaddress_to_interface(self):
+        """Load IPAddressonInterface data from Nautobot into DiffSync models"""
+        for ipddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+            new_ipaddr_to_interface = self.ipaddr_to_interface(
+                address=str(ipaddr.address),
+                device=ipaddr.interfaces.first().device.name if ipaddr.interfaces.first() else "",
+                port=port.name,
+                primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
+            )
+            self.add(new_ipaddr_to_interface)
 
     def sync_complete(self, source: DiffSync, *args, **kwargs):
         """Label and clean up function for DiffSync sync.

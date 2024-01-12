@@ -24,6 +24,7 @@ from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterPrefix,
     DnaCenterIPAddress,
     DnaCenterPort,
+    DnaCenterIPAddressonInterface
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
@@ -88,8 +89,9 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
     port = DnaCenterPort
     prefix = DnaCenterPrefix
     ipaddress = DnaCenterIPAddress
+    ip_on_intf = DnaCenterIPAddressonInterface
 
-    top_level = ["area", "building", "device", "prefix", "ipaddress"]
+    top_level = ["area", "building", "device", "prefix", "ipaddress", "ip_on_intf"]
 
     def __init__(self, *args, job=None, sync=None, client: DnaCenterClient, tenant: Tenant, **kwargs):
         """Initialize DNA Center.
@@ -416,16 +418,19 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                             else:
                                 primary = False
                             self.load_ip_address(
-                                device_name=dev.name if dev.name else "",
-                                interface=port["portName"],
                                 address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
-                                primary=primary,
                                 tenant=tenant,
+                            )
+                            self.load_ipaddress_to_interface(
+                                address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
+                                device=dev.name if dev.name else "",
+                                port=port["portName"],
+                                primary=primary,
                             )
                 except ValidationError as err:
                     self.job.logger.warning(f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
-    def load_ip_address(self, device_name: str, interface: str, address: str, primary: bool, tenant: str):
+    def load_ip_address(self, address: str, tenant: str):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
 
         Args:
@@ -435,33 +440,49 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
             primary (bool): Whether the IP Address is the primary IP for the Device.
         """
         addr = ipaddress_interface(address, "with_prefixlen")
+        if self.tenant:
+            namespace = self.tenant.name
+        else:
+            namespace = "Global"
         try:
-            self.get(self.prefix, {"prefix": addr, "namespace": tenant})
+            self.get(self.prefix, {"prefix": addr, "namespace": namespace})
         except ObjectNotFound:
             new_prefix = self.prefix(
                 prefix=addr,
-                namespace=tenant if tenant != None else "Global",
+                namespace=namespace,
                 uuid=None,
             )
             self.add(new_prefix)
         try:
-            ip_found = self.get(self.ipaddress, {"address": address, "device": device_name, "interface": interface})
+            ip_found = self.get(self.ipaddress, {"address": address, "prefix": addr})
             if ip_found:
                 self.job.logger.warning(
-                    f"Duplicate IP Address attempting to be loaded: Device {device_name} Address: {address}"
+                    f"Duplicate IP Address attempting to be loaded: Address: {address}"
                 )
         except ObjectNotFound:
             if self.job.debug:
-                self.job.logger.info(f"Loading IP Address {address} for {device_name} on {interface}.")
+                self.job.logger.info(f"Loading IP Address {address}.")
             new_ip = self.ipaddress(
                 address=address,
-                device=device_name,
-                interface=interface,
-                primary=primary,
+                prefix=addr,
                 tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
             )
             self.add(new_ip)
+
+    def load_ipaddress_to_interface(self, address: str, device: str, port: str, primary: bool):
+        """Load DNAC IPAddressOnInterface DiffSync model with specified data.
+        Args:
+            address (str): IP Address in mapping.
+            device (str): Device that IP resides on.
+            port (str): Interface that IP is configured on.
+            primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
+        """
+        try:
+            self.get(self.ip_on_intf, {"address": address, "device": device, "port": port})
+        except ObjectNotFound:
+            new_ipaddr_to_interface = self.ip_on_intf(address=address, device=device, port=port, primary=primary, uuid=None)
+            self.add(new_ipaddr_to_interface)
 
     def load(self):
         """Load data from DNA Center into DiffSync models."""

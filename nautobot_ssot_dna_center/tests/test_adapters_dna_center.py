@@ -327,7 +327,7 @@ class TestDnaCenterAdapterTestCase(
         self.dna_center.load_locations()
         self.dna_center.load_devices()
         self.dna_center.load_ip_address(
-            device_name=self.test_dev.name, interface=self.intf.name, address=str(self.addr.address), primary=True, tenant=None
+            address=str(self.addr.address), tenant=None
         )
         mock_address = self.dna_center.get(
             "ipaddress", f"{str(self.addr.address)}__{self.test_dev.name}__{self.intf.name}"
