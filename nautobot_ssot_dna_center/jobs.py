@@ -58,7 +58,7 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
 
     def load_source_adapter(self):
         """Load data from DNA Center into DiffSync models."""
-        self.logger(f"Loading data from {self.dnac.name}")
+        self.logger.info(f"Loading data from {self.dnac.name}")
         _sg = self.dnac.secrets_group
         username = _sg.get_secret_value(
             access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
@@ -73,7 +73,7 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
             username=username,
             password=password,
             port=self.dnac.extra_config["port"],
-            verify=self.dnac.ssl_verification,
+            verify=self.dnac.verify_ssl,
         )
         client.connect()
         self.source_adapter = dna_center.DnaCenterAdapter(
