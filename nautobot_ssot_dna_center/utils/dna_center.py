@@ -35,7 +35,7 @@ class DnaCenterClient:
                 base_url=self.base_url, username=self.username, password=self.password, verify=self.verify
             )
         except dnacentersdkException as err:
-            LOGGER.error("Unable to connect to DNA Center: %s", err)
+            raise dnacentersdkException("Unable to connect to DNA Center: %s", err)
 
     def get_locations(self):
         """Retrieve all location data from DNA Center.
