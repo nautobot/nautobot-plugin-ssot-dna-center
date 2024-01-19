@@ -237,7 +237,11 @@ class NautobotDevice(base.Device):
                 location = None
             device.location = location
         if "model" in attrs:
-            device.device_type = DeviceType.objects.get_or_create(model=attrs["model"])[0]
+            if attrs.get("vendor"):
+                vendor = Manufacturer.objects.get_or_create(name=attrs["vendor"])[0]
+            else:
+                vendor = Manufacturer.objects.get_or_create(name=self.vendor)[0]
+            device.device_type = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=vendor)[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "platform" in attrs:
