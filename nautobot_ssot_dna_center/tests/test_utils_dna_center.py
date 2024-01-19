@@ -213,3 +213,15 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         hostname = "core-router.example.com"
         result = self.dnac.parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
         self.assertEqual(result, "Unknown")
+
+    def test_get_model_name_single_model(self):
+        """Validate the functionality of get_model_name method with single model in string."""
+        test_model = "CSR1000v"
+        result = self.dnac.get_model_name(models=test_model)
+        self.assertEqual(result, "CSR1000v")
+
+    def test_get_model_name_multiple_models(self):
+        """Validate the functionality of get_model_name method with multiple models in string."""
+        test_models = "CSR1000v, CSR1000v, CSR1000v"
+        result = self.dnac.get_model_name(models=test_models)
+        self.assertEqual(result, "CSR1000v")
