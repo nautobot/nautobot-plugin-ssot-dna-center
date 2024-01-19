@@ -75,6 +75,7 @@ class TestNautobotBuilding(TransactionTestCase):
         self.test_bldg.diffsync = MagicMock()
         self.test_bldg.diffsync.job = MagicMock()
         self.test_bldg.diffsync.job.log_info = MagicMock()
+        self.test_bldg.diffsync.job.log_warning = MagicMock()
 
     def test_create_wo_parent(self):
         """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
@@ -82,7 +83,7 @@ class TestNautobotBuilding(TransactionTestCase):
         attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
-        self.diffsync.job.log_info.assert_called_with(message="Unable to find parent NY")
+        self.diffsync.job.log_warning.assert_called_with(message="Unable to find parent NY")
         site_obj = Site.objects.get(name=ids["name"])
         self.assertFalse(getattr(site_obj, "region"))
         self.assertEqual(site_obj.physical_address, attrs["address"])

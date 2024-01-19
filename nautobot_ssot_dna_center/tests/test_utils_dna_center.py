@@ -55,7 +55,7 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
     def test_connect_error(self, mock_api):
         self.dnac.conn = None
         mock_api.side_effect = dnacentersdkException(self.mock_response)
-        with self.assertLogs(level="ERROR") as log:
+        with self.assertRaises(dnacentersdkException) as log:
             self.dnac.connect()
             self.assertIn("Unable to connect to DNA Center", log.output[0])
         mock_api.assert_called_once_with(  # nosec B106

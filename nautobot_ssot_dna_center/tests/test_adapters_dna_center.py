@@ -48,6 +48,7 @@ class TestDnaCenterAdapterTestCase(
         ]
         self.dna_center_client.find_latitude_and_longitude.return_value = ("", "")
         self.dna_center_client.get_device_detail.return_value = DEVICE_DETAIL_FIXTURE
+        self.dna_center_client.get_model_name.return_value = "WS-C3850-24P-L"
         self.dna_center_client.parse_site_hierarchy.return_value = {
             "areas": ["Global", "NY"],
             "building": "Building1",
