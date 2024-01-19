@@ -294,6 +294,7 @@ PLUGINS_CONFIG = {
     },
     "nautobot_ssot_dna_center": {
         "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
+        "import_merakis": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_MERAKIS", False)),
         "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
     },
 }

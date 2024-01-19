@@ -297,6 +297,8 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                 if not dev.get("softwareType") and dev.get("type") and ("3800" in dev["type"] or "9130" in dev["type"]):
                     platform = "cisco_ios"
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
+                    if not PLUGIN_CFG.get("import_merakis"):
+                        continue
                     platform = "meraki"
             if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
