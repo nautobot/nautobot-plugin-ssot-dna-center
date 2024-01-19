@@ -340,7 +340,7 @@ class DnaCenterAdapter(LabelMixin, DiffSync):
                     status="Active" if dev.get("reachabilityStatus") != "Unreachable" else "Offline",
                     role=dev_role,
                     vendor=vendor,
-                    model=dev["platformId"] if dev.get("platformId") else "Unknown",
+                    model=self.conn.get_model_name(models=dev["platformId"]) if dev.get("platformId") else "Unknown",
                     site=loc_data["building"],
                     floor=f"{loc_data['building']} - {loc_data['floor']}" if loc_data.get("floor") else None,
                     serial=dev["serialNumber"] if dev.get("serialNumber") else "",
