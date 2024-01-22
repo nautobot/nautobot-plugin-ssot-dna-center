@@ -6,10 +6,8 @@ from unittest.mock import MagicMock
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 from django.test import override_settings
-from diffsync.exceptions import ObjectNotFound
-from nautobot.dcim.models import Device, DeviceType, Interface, Manufacturer, Location, LocationType, Rack, RackGroup
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, Job, JobResult, Status, Role
+from nautobot.dcim.models import Device, DeviceType, Interface, Manufacturer, Location, LocationType
+from nautobot.extras.models import CustomField, JobResult, Status, Role
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix, Namespace
 from nautobot.core.testing import TransactionTestCase
 from nautobot_ssot_dna_center.diffsync.adapters.dna_center import DnaCenterAdapter
@@ -71,9 +69,13 @@ class TestDnaCenterAdapterTestCase(
 
         self.sor_cf = CustomField.objects.get(label="System of Record")
         self.status_active = Status.objects.get(name="Active")
-        self.hq_area = Location.objects.create(name="NY", location_type=LocationType.objects.get(name="Region"), status=self.status_active)
+        self.hq_area = Location.objects.create(
+            name="NY", location_type=LocationType.objects.get(name="Region"), status=self.status_active
+        )
         self.loc_type = LocationType.objects.get(name="Site")
-        self.hq_site = Location.objects.create(name="HQ", parent=self.hq_area, location_type=self.loc_type, status=self.status_active)
+        self.hq_site = Location.objects.create(
+            name="HQ", parent=self.hq_area, location_type=self.loc_type, status=self.status_active
+        )
         self.hq_site.validated_save()
 
         cisco_manu = Manufacturer.objects.get_or_create(name="Cisco")[0]
@@ -91,13 +93,13 @@ class TestDnaCenterAdapterTestCase(
             status=self.status_active,
         )
         self.test_dev.validated_save()
-        self.intf = Interface.objects.create(name="Vlan823", type="virtual", device=self.test_dev, status=self.status_active)
+        self.intf = Interface.objects.create(
+            name="Vlan823", type="virtual", device=self.test_dev, status=self.status_active
+        )
         self.intf.validated_save()
 
-        self.namespace = Namespace.objects.get_or_create(
-            name="Global"
-        )[0]
-        
+        self.namespace = Namespace.objects.get_or_create(name="Global")[0]
+
         self.prefix = Prefix.objects.create(
             prefix="10.10.20.0/24",
             status=self.status_active,
@@ -222,9 +224,7 @@ class TestDnaCenterAdapterTestCase(
         self.dna_center.add = MagicMock()
         self.dna_center.add.side_effect = ValidationError(message="Building load failed!")
         self.dna_center.load_buildings(buildings=EXPECTED_BUILDINGS)
-        self.dna_center.job.logger.warning.assert_called_with(
-            "Unable to load building DC1. ['Building load failed!']"
-        )
+        self.dna_center.job.logger.warning.assert_called_with("Unable to load building DC1. ['Building load failed!']")
 
     def test_load_floors(self):
         """Test Nautobot SSoT for Cisco DNA Center load_floors() function."""
@@ -237,9 +237,7 @@ class TestDnaCenterAdapterTestCase(
         """Test Nautobot SSoT for Cisco DNA Center load_floors() function with missing parent."""
         self.dna_center.dnac_location_map = {}
         self.dna_center.load_floors(floors=EXPECTED_FLOORS)
-        self.dna_center.job.logger.warning.assert_called_with(
-            "Parent to Main Floor can't be found so will be skipped."
-        )
+        self.dna_center.job.logger.warning.assert_called_with("Parent to Main Floor can't be found so will be skipped.")
 
     def test_load_devices(self):
         """Test Nautobot SSoT for Cisco DNA Center load_devices() function."""

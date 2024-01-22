@@ -5,11 +5,8 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
     Location,
     LocationType,
-    Rack,
-    RackGroup,
     Device,
     DeviceType,
-    Platform,
     Manufacturer,
 )
 from nautobot.extras.models import Status, Role
@@ -36,9 +33,7 @@ class TestNautobotArea(TransactionTestCase):
         """Validate the NautobotArea create() method creates a Region."""
         status_active = Status.objects.get(name="Active")
         loc_type = LocationType.objects.get(name="Region")
-        Location.objects.create(
-            name="Global", location_type=loc_type, status=status_active
-        )
+        Location.objects.create(name="Global", location_type=loc_type, status=status_active)
         ids = {"name": "NY", "parent": "Global"}
         attrs = {}
         result = NautobotArea.create(self.diffsync, ids, attrs)
@@ -70,9 +65,13 @@ class TestNautobotBuilding(TransactionTestCase):
         self.diffsync.job.logger.info = MagicMock()
         Tenant.objects.create(name="G&A")
         reg_loc = LocationType.objects.get(name="Region")
-        region = Location.objects.create(name="Region 2", location_type=reg_loc, status=Status.objects.get(name="Active"))
+        region = Location.objects.create(
+            name="Region 2", location_type=reg_loc, status=Status.objects.get(name="Active")
+        )
         loc_type = LocationType.objects.get(name="Site")
-        self.sec_site = Location.objects.create(name="Site 2", parent=region, status=Status.objects.get(name="Active"), location_type=loc_type)
+        self.sec_site = Location.objects.create(
+            name="Site 2", parent=region, status=Status.objects.get(name="Active"), location_type=loc_type
+        )
         self.sec_site.validated_save()
         self.test_bldg = NautobotBuilding(
             name="Site 2", address="", area="NY", latitude="", longitude="", tenant="G&A", uuid=self.sec_site.id
@@ -81,29 +80,19 @@ class TestNautobotBuilding(TransactionTestCase):
         self.test_bldg.diffsync.job = MagicMock()
         self.test_bldg.diffsync.job.logger.info = MagicMock()
 
-    # def test_create_wo_parent(self):
-    #     """Validate the NautobotBuilding create() method creates a Site without a matching parent Region."""
-    #     ids = {"name": "HQ"}
-    #     attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
-    #     result = NautobotBuilding.create(self.diffsync, ids, attrs)
-    #     self.assertIsInstance(result, NautobotBuilding)
-    #     self.diffsync.job.logger.info.assert_called_with("Unable to find parent NY")
-    #     site_obj = Location.objects.get(name=ids["name"])
-    #     self.assertFalse(getattr(site_obj, "region"))
-    #     self.assertEqual(site_obj.physical_address, attrs["address"])
-    #     self.assertEqual(site_obj.tenant.name, attrs["tenant"])
-
-    def test_create_w_parent(self):
-        """Validate the NautobotBuilding create() method creates a Site with a matching parent Region."""
+    def test_create(self):
+        """Validate the NautobotBuilding create() method creates a Site."""
         ids = {"name": "HQ"}
         attrs = {"address": "123 Main St", "area": "NY", "latitude": "12.345", "longitude": "-67.890", "tenant": "G&A"}
-        ny_area = Location.objects.get_or_create(name="NY", location_type=LocationType.objects.get(name="Region"), status=Status.objects.get(name="Active"))[0]
+        ny_area = Location.objects.get_or_create(
+            name="NY", location_type=LocationType.objects.get(name="Region"), status=Status.objects.get(name="Active")
+        )[0]
         ny_area.validated_save()
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.logger.info.assert_called_once_with("Creating Site HQ.")
         site_obj = Location.objects.get(name=ids["name"])
-        self.assertEqual(site_obj.parent, attrs["area"])
+        self.assertEqual(site_obj.parent.name, attrs["area"])
         self.assertEqual(site_obj.physical_address, attrs["address"])
         self.assertEqual(site_obj.tenant.name, attrs["tenant"])
 
@@ -163,8 +152,10 @@ class TestNautobotFloor(TransactionTestCase):
         self.diffsync.job = MagicMock()
         self.diffsync.job.logger.info = MagicMock()
         Tenant.objects.create(name="G&A")
-        loc_type=LocationType.objects.get(name="Site")
-        self.hq_site, _ = Location.objects.get_or_create(name="HQ", location_type=loc_type, status=Status.objects.get(name="Active"))
+        loc_type = LocationType.objects.get(name="Site")
+        self.hq_site, _ = Location.objects.get_or_create(
+            name="HQ", location_type=loc_type, status=Status.objects.get(name="Active")
+        )
 
     def test_create(self):
         """Test the NautobotFloor create() method creates a LocationType: Floor."""
@@ -173,13 +164,9 @@ class TestNautobotFloor(TransactionTestCase):
         result = NautobotFloor.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotFloor)
         self.diffsync.job.logger.info.assert_called_with("Creating Floor HQ - Floor 1.")
-        floor_loc = LocationType.objects.get(name="Floor")
-        self.assertEqual(len(floor_loc.content_types.filter(model="device")), 1)
-        self.assertEqual(len(floor_loc.content_types.filter(model="rack")), 1)
-        self.assertEqual(len(floor_loc.content_types.filter(model="rackgroup")), 1)
         floor_obj = Location.objects.get(name="HQ - Floor 1")
         self.assertEqual(floor_obj.name, ids["name"])
-        self.assertEqual(floor_obj.location.parent, self.hq_site)
+        self.assertEqual(floor_obj.parent.name, self.hq_site.name)
         self.assertEqual(floor_obj.tenant.name, attrs["tenant"])
 
     def test_update_w_tenant(self):
@@ -224,9 +211,7 @@ class TestNautobotFloor(TransactionTestCase):
             "tenant": None,
         }
         NautobotFloor.update(self=test_floor, attrs=update_attrs)
-        test_floor.diffsync.job.logger.info.assert_called_once_with(
-            "Updating Floor HQ - Floor 2 with {'tenant': None}"
-        )
+        test_floor.diffsync.job.logger.info.assert_called_once_with("Updating Floor HQ - Floor 2 with {'tenant': None}")
         mock_floor.refresh_from_db()
         self.assertIsNone(mock_floor.tenant)
 
@@ -279,22 +264,22 @@ class TestNautobotDevice(TransactionTestCase):
     def test_create(self):
         """Test the NautobotDevice create() method creates a Device."""
         loc_type, _ = LocationType.objects.get_or_create(name="Site")
-        hq_site, _ = Location.objects.get_or_create(name="HQ", status=self.status_active, location_type=loc_type)
+        Location.objects.create(name="HQ", status=self.status_active, location_type=loc_type)
         floors, _ = LocationType.objects.get_or_create(name="Floor")
         floors.content_types.add(ContentType.objects.get_for_model(Device))
 
         NautobotDevice.create(self.diffsync, self.ids, self.attrs)
         self.diffsync.job.logger.info.assert_called_with("Creating Version 16.12.3 for cisco.ios.ios.")
         new_dev = Device.objects.get(name=self.ids["name"])
-        self.assertEqual(new_dev.location, hq_site)
-        self.assertEqual(new_dev.device_role, Role.objects.get(name=self.attrs["role"]))
+        self.assertEqual(new_dev.location.parent.name, self.attrs["site"])
+        self.assertEqual(new_dev.role, Role.objects.get(name=self.attrs["role"]))
         self.assertEqual(
             new_dev.device_type,
             DeviceType.objects.get(
                 model=self.attrs["model"], manufacturer=Manufacturer.objects.get(name=self.attrs["vendor"])
             ),
         )
-        self.assertEqual(new_dev.platform, Platform.objects.get(name=self.attrs["platform"]))
+        self.assertEqual(new_dev.platform.network_driver, self.attrs["platform"])
         self.assertEqual(new_dev.serial, self.attrs["serial"])
         self.assertTrue(new_dev.location)
         self.assertEqual(new_dev.location.name, self.attrs["floor"])

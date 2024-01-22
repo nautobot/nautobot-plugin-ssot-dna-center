@@ -8,15 +8,13 @@ from nautobot.dcim.models import (
     Manufacturer,
     Location,
     LocationType,
-    Rack,
-    RackGroup,
     Device,
     DeviceType,
     Platform,
     Interface,
 )
-from nautobot.extras.models import Status, Job, JobResult, Role
-from nautobot.ipam.models import IPAddress
+from nautobot.extras.models import Status, JobResult, Role
+from nautobot.ipam.models import IPAddress, Namespace, Prefix, IPAddressToInterface
 from nautobot.core.testing import TransactionTestCase
 from nautobot_ssot_dna_center.jobs import DnaCenterDataSource
 from nautobot_ssot_dna_center.diffsync.adapters.nautobot import NautobotAdapter
@@ -55,11 +53,15 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         global_region = Location.objects.create(name="Global", status=self.status_active, location_type=self.loc_type)
         global_region.custom_field_data["system_of_record"] = "DNA Center"
         global_region.validated_save()
-        self.ny_region = Location.objects.create(name="NY", location_type=self.loc_type, status=self.status_active)
+        self.ny_region = Location.objects.create(
+            name="NY", location_type=self.loc_type, parent=global_region, status=self.status_active
+        )
         self.ny_region.custom_field_data["system_of_record"] = "DNA Center"
         self.ny_region.validated_save()
         self.loc_type = LocationType.objects.get(name="Site")
-        self.hq_site = Location.objects.create(parent=self.ny_region, name="HQ", status=self.status_active, location_type=self.loc_type)
+        self.hq_site = Location.objects.create(
+            parent=self.ny_region, name="HQ", status=self.status_active, location_type=self.loc_type
+        )
         self.hq_site.custom_field_data["system_of_record"] = "DNA Center"
         self.hq_site.validated_save()
 
@@ -112,7 +114,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         spine1_dev.custom_field_data["system_of_record"] = "DNA Center"
         spine1_dev.validated_save()
 
-        unknown_role=Role.objects.create(name="UNKNOWN")
+        unknown_role = Role.objects.create(name="UNKNOWN")
         unknown_role.content_types.add(ContentType.objects.get_for_model(Device))
         meraki_ap = Device.objects.create(
             name="",
@@ -168,45 +170,78 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         ap_mgmt.custom_field_data["system_of_record"] = "DNA Center"
         ap_mgmt.validated_save()
 
+        test_ns = Namespace.objects.create(name="Global")
+
+        leaf1_pf = Prefix.objects.create(
+            prefix="10.10.10.0/24",
+            namespace=test_ns,
+            status=self.status_active,
+        )
         leaf1_ip = IPAddress.objects.create(
             address="10.10.10.1/24",
+            parent=leaf1_pf,
             status=self.status_active,
         )
         leaf1_ip.custom_field_data["system_of_record"] = "DNA Center"
         leaf1_ip.validated_save()
+
+        IPAddressToInterface.objects.create(ip_address=leaf1_ip, interface=leaf1_mgmt)
+
         leaf1_mgmt.device.primary_ip4 = leaf1_ip
         leaf1_mgmt.device.validated_save()
 
+        leaf2_pf = Prefix.objects.create(
+            prefix="10.10.11.0/24",
+            namespace=test_ns,
+            status=self.status_active,
+        )
         leaf2_ip = IPAddress.objects.create(
             address="10.10.11.1/24",
+            parent=leaf2_pf,
             status=self.status_active,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            assigned_object_id=leaf2_mgmt.id,
         )
         leaf2_ip.custom_field_data["system_of_record"] = "DNA Center"
         leaf2_ip.validated_save()
+
+        IPAddressToInterface.objects.create(ip_address=leaf2_ip, interface=leaf2_mgmt)
+
         leaf2_mgmt.device.primary_ip4 = leaf2_ip
         leaf2_mgmt.device.validated_save()
 
+        spine1_pf = Prefix.objects.create(
+            prefix="10.10.12.0/24",
+            namespace=test_ns,
+            status=self.status_active,
+        )
         spine1_ip = IPAddress.objects.create(
             address="10.10.12.1/24",
+            parent=spine1_pf,
             status=self.status_active,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            assigned_object_id=spine1_mgmt.id,
         )
         spine1_ip.custom_field_data["system_of_record"] = "DNA Center"
         spine1_ip.validated_save()
+
+        IPAddressToInterface.objects.create(ip_address=spine1_ip, interface=spine1_mgmt)
+
         spine1_mgmt.device.primary_ip4 = spine1_ip
         spine1_mgmt.device.validated_save()
 
+        ap_pf = Prefix.objects.create(
+            prefix="10.10.13.0/24",
+            namespace=test_ns,
+            status=self.status_active,
+        )
+
         ap_ip = IPAddress.objects.create(
             address="10.10.13.1/24",
+            parent=ap_pf,
             status=self.status_active,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            assigned_object_id=ap_mgmt.id,
         )
         ap_ip.custom_field_data["system_of_record"] = "DNA Center"
         ap_ip.validated_save()
+
+        IPAddressToInterface.objects.create(ip_address=ap_ip, interface=ap_mgmt)
+
         ap_mgmt.device.primary_ip4 = ap_ip
         ap_mgmt.device.validated_save()
 
@@ -241,10 +276,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         self.assertEqual(
             [
-                "10.10.10.1/24__leaf1.abc.inc__Management",
-                "10.10.11.1/24__leaf2.abc.inc__Management",
-                "10.10.12.1/24__spine1.abc.in__Management",
-                "10.10.13.1/24____Management",
+                "10.10.10.1/24__10.10.10.0/24",
+                "10.10.11.1/24__10.10.11.0/24",
+                "10.10.12.1/24__10.10.12.0/24",
+                "10.10.13.1/24__10.10.13.0/24",
             ],
             sorted(ipaddr.get_unique_id() for ipaddr in self.nb_adapter.get_all("ipaddress")),
         )
@@ -255,13 +290,6 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load()
         self.nb_adapter.load_regions()
         self.nb_adapter.job.logger.warning.assert_called_with("Region NY already loaded so skipping duplicate.")
-
-    # def test_load_floors_missing_location_type(self):
-    #     """Test the load_floors method failing with missing Location Type."""
-    #     self.nb_adapter.load_floors()
-    #     self.nb_adapter.job.logger.warning.assert_called_with(
-    #         "Unable to find LocationType: Floor so can't find floor Locations to load. LocationType matching query does not exist."
-    #     )
 
     @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmLocationType")
     @patch("nautobot_ssot_dna_center.diffsync.adapters.nautobot.OrmLocation")
@@ -285,6 +313,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
     def test_sync_complete(self):
         """Test the sync_complete() method in the NautobotAdapter."""
         self.nb_adapter.objects_to_delete = {
+            "ipaddresses": [MagicMock()],
+            "prefixes": [MagicMock()],
             "ports": [MagicMock()],
             "devices": [MagicMock()],
             "floors": [MagicMock(), MagicMock()],
@@ -295,13 +325,17 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.job.logger.info = MagicMock()
 
         deleted_objs = []
-        for group in ["floors", "sites"]:
+        for group in ["ipaddresses", "prefixes", "ports", "devices", "floors", "sites"]:
             deleted_objs.extend(self.nb_adapter.objects_to_delete[group])
 
         self.nb_adapter.sync_complete(diff=MagicMock(), source=MagicMock())
 
         for obj in deleted_objs:
             self.assertTrue(obj.delete.called)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["ipaddresses"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["prefixes"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["devices"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["ports"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["floors"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["sites"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["regions"]), 0)
@@ -310,3 +344,5 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[0].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[1].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[2].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[3].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[4].startswith("Deleting"))

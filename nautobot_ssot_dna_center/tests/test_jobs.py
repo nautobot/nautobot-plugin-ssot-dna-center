@@ -21,12 +21,12 @@ class DnaCenterDataSourceJobTest(TestCase):
         self.assertEqual("Areas", mappings[0].source_name)
         self.assertIsNone(mappings[0].source_url)
         self.assertEqual("Regions", mappings[0].target_name)
-        self.assertEqual(reverse("dcim:region_list"), mappings[0].target_url)
+        self.assertEqual(reverse("dcim:location_list"), mappings[0].target_url)
 
         self.assertEqual("Buildings", mappings[1].source_name)
         self.assertIsNone(mappings[1].source_url)
         self.assertEqual("Sites", mappings[1].target_name)
-        self.assertEqual(reverse("dcim:site_list"), mappings[1].target_url)
+        self.assertEqual(reverse("dcim:location_list"), mappings[1].target_url)
 
         self.assertEqual("Floors", mappings[2].source_name)
         self.assertIsNone(mappings[2].source_url)
