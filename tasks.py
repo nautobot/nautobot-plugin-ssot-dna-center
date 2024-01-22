@@ -40,7 +40,7 @@ namespace.configure(
         "nautobot_ssot_dna_center": {
             "nautobot_ver": "latest",
             "project_name": "nautobot_ssot_dna_center",
-            "python_ver": "3.7",
+            "python_ver": "3.8",
             "local": False,
             "compose_dir": os.path.join(os.path.dirname(__file__), "development"),
             "compose_files": [
