@@ -34,7 +34,7 @@ class Building(DiffSyncModel):
 
     name: str
     address: Optional[str]
-    area: Optional[str]
+    area: str
     latitude: Optional[str]
     longitude: Optional[str]
     tenant: Optional[str]
