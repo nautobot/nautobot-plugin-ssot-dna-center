@@ -212,8 +212,6 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-        # self.job.logger.info("Sync is complete. Labelling imported objects from DNA Center.")
-        # source.label_imported_objects(target=self)
 
         for grouping in ["ports", "devices", "floors", "sites", "regions"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
