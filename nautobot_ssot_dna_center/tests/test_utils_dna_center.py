@@ -55,9 +55,8 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
     def test_connect_error(self, mock_api):
         self.dnac.conn = None
         mock_api.side_effect = dnacentersdkException(self.mock_response)
-        with self.assertLogs(level="ERROR") as log:
+        with self.assertRaises(dnacentersdkException):
             self.dnac.connect()
-            self.assertIn("Unable to connect to DNA Center", log.output[0])
         mock_api.assert_called_once_with(  # nosec B106
             base_url="https://dnac.testexample.com:443", password="testpassword", username="testuser", verify=False
         )
@@ -213,3 +212,15 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         hostname = "core-router.example.com"
         result = self.dnac.parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
         self.assertEqual(result, "Unknown")
+
+    def test_get_model_name_single_model(self):
+        """Validate the functionality of get_model_name method with single model in string."""
+        test_model = "CSR1000v"
+        result = self.dnac.get_model_name(models=test_model)
+        self.assertEqual(result, "CSR1000v")
+
+    def test_get_model_name_multiple_models(self):
+        """Validate the functionality of get_model_name method with multiple models in string."""
+        test_models = "CSR1000v, CSR1000v, CSR1000v"
+        result = self.dnac.get_model_name(models=test_models)
+        self.assertEqual(result, "CSR1000v")

@@ -35,7 +35,7 @@ class DnaCenterClient:
                 base_url=self.base_url, username=self.username, password=self.password, verify=self.verify
             )
         except dnacentersdkException as err:
-            LOGGER.error("Unable to connect to DNA Center: %s", err)
+            raise dnacentersdkException(f"Unable to connect to DNA Center: {err}") from err
 
     def get_locations(self):
         """Retrieve all location data from DNA Center.
@@ -224,3 +224,20 @@ class DnaCenterClient:
                 if match:
                     device_role = entry[1]
         return device_role
+
+    @staticmethod
+    def get_model_name(models: str) -> str:
+        """Obtain DeviceType model from a list of models.
+
+        Args:
+            models (str): String specifying DeviceType model. Potentially a list of models.
+
+        Returns:
+            str: Parsed model name. If list of models, just a single model.
+        """
+        if "," in models:
+            model_list = models.split(", ")
+            model_list = list(set(model_list))
+            if len(model_list) == 1:
+                return model_list[0]
+        return models
