@@ -353,25 +353,18 @@ class NautobotPrefix(base.Prefix):
     def create(cls, diffsync, ids, attrs):
         """Create Prefix in Nautobot from NautobotManagementPrefix objects."""
         namespace = Namespace.objects.get_or_create(name=ids["namespace"])[0]
-        diffsync.namespace_map[ids["namespace"]] = namespace.id
-        try:
-            new_prefix = diffsync.prefix_map[ids["namespace"]][ids["prefix"]]
-        except:
-            if diffsync.job.debug:
-                diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
-            new_prefix = Prefix(
-                prefix=ids["prefix"],
-                namespace_id=namespace.id,
-            )
-            if attrs.get("tenant"):
-                new_prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
-            new_prefix.custom_field_data.update({"system_of_record": "DNA Center"})
-            new_prefix.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-            if ids["namespace"] not in diffsync.prefix_map:
-                diffsync.prefix_map[ids["namespace"]] = {}
-                diffsync.prefix_map[ids["namespace"]][ids["prefix"]] = new_prefix.id
-            new_prefix.validated_save()
-            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        if diffsync.job.debug:
+            diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
+        new_prefix = Prefix(
+            prefix=ids["prefix"],
+            namespace=namespace,
+        )
+        if attrs.get("tenant"):
+            new_prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
+        new_prefix.custom_field_data.update({"system_of_record": "DNA Center"})
+        new_prefix.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+        new_prefix.validated_save()
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(cls, diffsync, ids, attrs):
         prefix = Prefix.objects.get(id=self.uuid)
