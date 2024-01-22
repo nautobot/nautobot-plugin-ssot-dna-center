@@ -35,9 +35,7 @@ def verify_platform(platform_name: str, manu: UUID) -> Platform:
         platform_obj = Platform.objects.get(name=platform_name)
     except Platform.DoesNotExist:
         platform_obj = Platform(
-            name=_name,
-            manufacturer_id=manu,
-            napalm_driver=napalm_driver[:50],
+            name=_name, manufacturer_id=manu, napalm_driver=napalm_driver[:50], network_driver=platform_name
         )
         platform_obj.validated_save()
     return platform_obj
