@@ -134,7 +134,7 @@ class NautobotAdapter(DiffSync):
             version = dev.custom_field_data.get("os_version")
             if LIFECYCLE_MGMT:
                 try:
-                    soft_lcm = OrmRelationship.objects.get(name="Software on Device")
+                    soft_lcm = OrmRelationship.objects.get(label="Software on Device")
                     version = OrmRelationshipAssociation.objects.get(
                         relationship=soft_lcm, destination_id=dev.id
                     ).source.version
