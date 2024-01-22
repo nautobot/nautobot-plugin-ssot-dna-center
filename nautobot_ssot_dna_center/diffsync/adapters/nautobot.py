@@ -47,8 +47,6 @@ class NautobotAdapter(DiffSync):
 
     top_level = ["area", "building", "device", "prefix", "ipaddress", "ip_on_intf"]
 
-    prefix_map = {}
-
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
 
