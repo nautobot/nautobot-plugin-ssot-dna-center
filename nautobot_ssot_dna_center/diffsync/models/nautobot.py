@@ -383,8 +383,8 @@ class NautobotPrefix(base.Prefix):
             super().delete()
             return self
         except Prefix.DoesNotExist as err:
-            if self.diffsync.log.debug:
-                self.diffsync.job.logger.waring(f"Unable to find Prefix {self.prefix} {self.uuid} for deletion. {err}")
+            self.diffsync.job.logger.warning(f"Unable to find Prefix {self.prefix} {self.uuid} for deletion. {err}")
+
 
 class NautobotIPAddress(base.IPAddress):
     """Nautobot implementation of the IPAddress DiffSync model."""
