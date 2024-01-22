@@ -2,7 +2,6 @@
 
 from django.urls import reverse
 from django.templatetags.static import static
-from diffsync import DiffSyncFlags
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.extras.jobs import BooleanVar, MultiObjectVar, ObjectVar
 from nautobot.extras.models import ExternalIntegration
@@ -22,13 +21,6 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
     dnac = ObjectVar(model=ExternalIntegration, queryset=ExternalIntegration.objects.all(), display_field="display_name", required=True, label="DNAC Instance")
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
     tenant = ObjectVar(model=Tenant, label="Tenant", required=False)
-
-    def __init__(self):
-        """Initialize DNA Center Data Source."""
-        super().__init__()
-        self.diffsync_flags = (
-            self.diffsync_flags | DiffSyncFlags.CONTINUE_ON_FAILURE  # pylint: disable=unsupported-binary-operation
-        )
 
     class Meta:  # pylint: disable=too-few-public-methods
         """Meta data for DNA Center."""
