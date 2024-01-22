@@ -347,7 +347,7 @@ class NautobotPort(base.Port):
 
 
 class NautobotPrefix(base.Prefix):
-    """Nautobot implemention of DNAC Prefix model"""
+    """Nautobot implemention of Prefix DiffSync model."""
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -366,7 +366,8 @@ class NautobotPrefix(base.Prefix):
         new_prefix.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
-    def update(cls, diffsync, ids, attrs):
+    def update(self, attrs):
+        """Update Prefix in Nautobot from Prefix object."""
         prefix = Prefix.objects.get(id=self.uuid)
         if "tenant" in attrs:
             if attrs.get("tenant"):
@@ -377,6 +378,7 @@ class NautobotPrefix(base.Prefix):
         return super().update(attrs)
 
     def delete(self):
+        """Delete Prefix in Nautobot from Prefix object."""
         try:
             prefix = Prefix.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["prefixes"].append(prefix)
