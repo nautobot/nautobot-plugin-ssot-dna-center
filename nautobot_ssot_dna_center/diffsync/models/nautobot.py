@@ -391,23 +391,16 @@ class NautobotIPAddress(base.IPAddress):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create IPAddress in Nautobot from IPAddress object."""
-        try:
-            device = Device.objects.get(name=ids["device"])
-            intf = Interface.objects.get(name=ids["interface"], device=device)
-            new_ip = IPAddress(
-                address=ids["address"],
-                parent=Prefix.objects.get(prefix=ids["prefix"]),
-                status=Status.objects.get(name="Active"),
-                namespace=Namespace.objects.get_or_create(name=attrs["tenant"])
-            )
-            if attrs.get("tenant"):
-                new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
-            new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
-            new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-            new_ip.validated_save()
-        except Device.DoesNotExist as err:
-            diffsync.job.logger.warning(f"Unable to find Device {ids['device']} for IPAddress {ids['address']}. {err}")
-            return None
+        new_ip = IPAddress(
+            address=ids["address"],
+            parent=Prefix.objects.get(prefix=ids["prefix"]),
+            status=Status.objects.get(name="Active"),
+        )
+        if attrs.get("tenant"):
+            new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
+        new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
+        new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+        new_ip.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
