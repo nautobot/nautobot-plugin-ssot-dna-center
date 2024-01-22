@@ -18,7 +18,7 @@ from nautobot.dcim.models import LocationType as OrmLocationType
 from nautobot.extras.models import Relationship as OrmRelationship
 from nautobot.extras.models import RelationshipAssociation as OrmRelationshipAssociation
 from nautobot.ipam.models import IPAddress as OrmIPAddress
-from nautobot.ipam.models import Namespace as OrmNamespace
+from nautobot.ipam.models import IPAddressToInterface as OrmIPAddressToInterface
 from nautobot.ipam.models import Prefix as OrmPrefix
 
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
@@ -196,13 +196,19 @@ class NautobotAdapter(DiffSync):
             self.add(new_ipaddr)
 
     def load_ipaddress_to_interface(self):
-        """Load IPAddressonInterface data from Nautobot into DiffSync models"""
-        for ipddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
-            new_ipaddr_to_interface = self.ipaddr_to_interface(
-                address=str(ipaddr.address),
-                device=ipaddr.interfaces.first().device.name if ipaddr.interfaces.first() else "",
-                port=port.name,
-                primary=hasattr(ipaddr, "primary_ip4_for") or hasattr(ipaddr, "primary_ip6_for"),
+        """Load IPAddressonInterface data from Nautobot into DiffSync models."""
+        for mapping in OrmIPAddressToInterface.objects.filter(
+            ip_address___custom_field_data__system_of_record="DNA Center"
+        ):
+            new_ipaddr_to_interface = self.ip_on_intf(
+                address=str(mapping.ip_address.address),
+                device=mapping.interface.device.name,
+                port=mapping.interface.name,
+                primary=bool(
+                    len(mapping.ip_address.primary_ip4_for.all()) > 0
+                    or len(mapping.ip_address.primary_ip6_for.all()) > 0
+                ),
+                uuid=mapping.id,
             )
             self.add(new_ipaddr_to_interface)
 
