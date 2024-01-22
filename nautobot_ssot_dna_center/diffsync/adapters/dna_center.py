@@ -18,7 +18,7 @@ from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterPrefix,
     DnaCenterIPAddress,
     DnaCenterPort,
-    DnaCenterIPAddressonInterface
+    DnaCenterIPAddressonInterface,
 )
 from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 
@@ -392,9 +392,7 @@ class DnaCenterAdapter(DiffSync):
         try:
             ip_found = self.get(self.ipaddress, {"address": address, "prefix": addr})
             if ip_found:
-                self.job.logger.warning(
-                    f"Duplicate IP Address attempting to be loaded: Address: {address}"
-                )
+                self.job.logger.warning(f"Duplicate IP Address attempting to be loaded: Address: {address}")
         except ObjectNotFound:
             if self.job.debug:
                 self.job.logger.info(f"Loading IP Address {address}.")
@@ -408,6 +406,7 @@ class DnaCenterAdapter(DiffSync):
 
     def load_ipaddress_to_interface(self, address: str, device: str, port: str, primary: bool):
         """Load DNAC IPAddressOnInterface DiffSync model with specified data.
+
         Args:
             address (str): IP Address in mapping.
             device (str): Device that IP resides on.
@@ -417,7 +416,9 @@ class DnaCenterAdapter(DiffSync):
         try:
             self.get(self.ip_on_intf, {"address": address, "device": device, "port": port})
         except ObjectNotFound:
-            new_ipaddr_to_interface = self.ip_on_intf(address=address, device=device, port=port, primary=primary, uuid=None)
+            new_ipaddr_to_interface = self.ip_on_intf(
+                address=address, device=device, port=port, primary=primary, uuid=None
+            )
             self.add(new_ipaddr_to_interface)
 
     def load(self):

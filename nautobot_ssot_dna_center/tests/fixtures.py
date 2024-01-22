@@ -2,7 +2,6 @@
 import json
 
 
-
 def load_json(path):
     """Load a json file."""
     with open(path, encoding="utf-8") as file:
@@ -26,6 +25,3 @@ EXPECTED_AREAS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expec
 EXPECTED_AREAS_WO_GLOBAL = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_areas_wo_global.json")
 EXPECTED_BUILDINGS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_buildings.json")
 EXPECTED_FLOORS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_floors.json")
-
-
-

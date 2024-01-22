@@ -7,8 +7,6 @@ from nautobot.dcim.models import (
     DeviceType,
     Interface,
     Manufacturer,
-    Rack,
-    RackGroup,
     Location,
     LocationType,
 )
@@ -425,6 +423,7 @@ class NautobotIPAddress(base.IPAddress):
         super().delete()
         self.diffsync.objects_to_delete["ipaddresses"].append(ipaddr)
         return self
+
 
 class NautobotIPAddressOnInterface(base.IPAddressOnInterface):
     """Nautobot implementation of DNA Center IPAddressOnInterface model."""

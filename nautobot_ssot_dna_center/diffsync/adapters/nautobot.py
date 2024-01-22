@@ -29,7 +29,7 @@ from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotIPAddress,
     NautobotPort,
     NautobotPrefix,
-    NautobotIPAddressOnInterface
+    NautobotIPAddressOnInterface,
 )
 
 

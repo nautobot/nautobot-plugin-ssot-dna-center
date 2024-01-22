@@ -3,7 +3,7 @@
 from django.urls import reverse
 from django.templatetags.static import static
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
-from nautobot.extras.jobs import BooleanVar, MultiObjectVar, ObjectVar
+from nautobot.extras.jobs import BooleanVar, ObjectVar
 from nautobot.extras.models import ExternalIntegration
 from nautobot.tenancy.models import Tenant
 from nautobot.core.celery import register_jobs
@@ -15,10 +15,16 @@ from nautobot_ssot_dna_center.utils.dna_center import DnaCenterClient
 name = "DNA Center SSoT"  # pylint: disable=invalid-name
 
 
-class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attributes
+class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attributes
     """DNA Center SSoT Data Source."""
 
-    dnac = ObjectVar(model=ExternalIntegration, queryset=ExternalIntegration.objects.all(), display_field="display_name", required=True, label="DNAC Instance")
+    dnac = ObjectVar(
+        model=ExternalIntegration,
+        queryset=ExternalIntegration.objects.all(),
+        display_field="display_name",
+        required=True,
+        label="DNAC Instance",
+    )
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
     tenant = ObjectVar(model=Tenant, label="Tenant", required=False)
 
@@ -68,9 +74,7 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
             verify=self.dnac.verify_ssl,
         )
         client.connect()
-        self.source_adapter = dna_center.DnaCenterAdapter(
-            job=self, sync=self.sync, client=client, tenant=self.tenant
-        )
+        self.source_adapter = dna_center.DnaCenterAdapter(job=self, sync=self.sync, client=client, tenant=self.tenant)
         self.source_adapter.load()
 
     def load_target_adapter(self):
@@ -78,7 +82,16 @@ class DnaCenterDataSource(DataSource): # pylint: disable=too-many-instance-attri
         self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
         self.target_adapter.load()
 
-    def run(self, dryrun, memory_profiling, debug, dnac, tenant, *args, **kwargs):  # pylint: disable=arguments-differ
+    def run(
+        self,
+        dryrun,
+        memory_profiling,
+        debug,
+        dnac,
+        tenant,
+        *args,
+        **kwargs,  # pylint: disable=arguments-differ, too-many-arguments
+    ):
         """Perform data synchronization."""
         self.dnac = dnac
         self.tenant = tenant

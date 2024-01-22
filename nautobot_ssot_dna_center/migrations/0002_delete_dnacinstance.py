@@ -4,13 +4,12 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('nautobot_ssot_dna_center', '0001_initial'),
+        ("nautobot_ssot_dna_center", "0001_initial"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='DNACInstance',
+            name="DNACInstance",
         ),
     ]
