@@ -318,7 +318,6 @@ class DnaCenterAdapter(DiffSync):
             dev (DnaCenterDevice): Device associated with ports.
         """
         ports = self.conn.get_port_info(device_id=device_id)
-        tenant=self.tenant
         for port in ports:
             try:
                 found_port = self.get(
@@ -362,8 +361,7 @@ class DnaCenterAdapter(DiffSync):
                             else:
                                 primary = False
                             self.load_ip_address(
-                                address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
-                                tenant=tenant,
+                                address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}"
                             )
                             self.load_ipaddress_to_interface(
                                 address=f"{addr['address']['ipAddress']['address']}/{netmask_to_cidr(addr['address']['ipMask']['address'])}",
@@ -391,6 +389,7 @@ class DnaCenterAdapter(DiffSync):
             new_prefix = self.prefix(
                 prefix=addr,
                 namespace=namespace,
+                tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
             )
             self.add(new_prefix)
