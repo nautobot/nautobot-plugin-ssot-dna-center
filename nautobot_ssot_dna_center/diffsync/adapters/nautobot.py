@@ -175,8 +175,13 @@ class NautobotAdapter(DiffSync):
 
     def load_prefixes(self):
         """Load Prefix data from Nautobot into DiffSync models."""
-        for prefixes in OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center"):
-            new_prefix = self.prefix(prefix=str(prefixes.prefix), namespace=prefixes.namespace.name, uuid=prefix.id)
+        for prefix in OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+            new_prefix = self.prefix(
+                prefix=str(prefix.prefix),
+                namespace=prefix.namespace.name,
+                tenant=prefix.tenant.name if prefix.tenant else None,
+                uuid=prefix.id,
+            )
             self.add(new_prefix)
 
     def load_ipaddresses(self):
