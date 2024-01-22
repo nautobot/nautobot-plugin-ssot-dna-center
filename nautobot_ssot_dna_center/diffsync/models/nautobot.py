@@ -379,6 +379,7 @@ class NautobotPrefix(base.Prefix):
     def delete(self):
         try:
             prefix = Prefix.objects.get(id=self.uuid)
+            self.diffsync.objects_to_delete["prefixes"].append(prefix)
             super().delete()
             return self
         except Prefix.DoesNotExist as err:
@@ -420,7 +421,7 @@ class NautobotIPAddress(base.IPAddress):
         """Delete IPAddress in Nautobot from IPAddress object."""
         ipaddr = IPAddress.objects.get(id=self.uuid)
         super().delete()
-        ipaddr.delete()
+        self.diffsync.objects_to_delete["ipaddresses"].append(ipaddr)
         return self
 
 class NautobotIPAddressOnInterface(base.IPAddressOnInterface):

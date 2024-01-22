@@ -210,8 +210,7 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-
-        for grouping in ["ports", "devices", "floors", "sites", "regions"]:
+        for grouping in ["ipaddresses", "prefixes", "ports", "devices", "floors", "sites", "regions"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
                     self.job.logger.info(f"Deleting {nautobot_obj}.")
