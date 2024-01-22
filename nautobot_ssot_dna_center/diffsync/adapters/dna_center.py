@@ -374,14 +374,11 @@ class DnaCenterAdapter(DiffSync):
                 except ValidationError as err:
                     self.job.logger.warning(f"Unable to load port {port['portName']} for {dev.name}. {err}")
 
-    def load_ip_address(self, address: str, tenant: str):
+    def load_ip_address(self, address: str):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
 
         Args:
-            device_name (str): Name of Device that will own IP Address.
-            interface (str): Name of Interface on Device that IP Address will reside on.
             address (str): IP Address to be loaded.
-            primary (bool): Whether the IP Address is the primary IP for the Device.
         """
         addr = ipaddress_interface(address, "with_prefixlen")
         if self.tenant:
