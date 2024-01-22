@@ -291,12 +291,11 @@ class DnaCenterAdapter(DiffSync):
                     version=dev.get("softwareVersion"),
                     platform=platform,
                     tenant=self.tenant.name if self.tenant else None,
-                    management_addr=dev["managementIpAddress"] if dev.get("managementIpAddress") else "",
                     uuid=None,
                 )
                 try:
                     self.add(new_dev)
-                    self.load_ports(device_id=dev["id"], dev=new_dev)
+                    self.load_ports(device_id=dev["id"], dev=new_dev, mgmt_addr=dev["managementIpAddress"])
                 except ValidationError as err:
                     self.job.logger.warning(f"Unable to load device {dev['hostname']}. {err}")
                     dev["field_validation"] = {
@@ -306,12 +305,13 @@ class DnaCenterAdapter(DiffSync):
                     }
                     self.failed_import_devices.append(dev)
 
-    def load_ports(self, device_id: str, dev: DnaCenterDevice):
+    def load_ports(self, device_id: str, dev: DnaCenterDevice, mgmt_addr: str = ""):
         """Load port info from DNAC into Port DiffSyncModel.
 
         Args:
             device_id (str): ID for Device in DNAC to retrieve ports for.
             dev (DnaCenterDevice): Device associated with ports.
+            mgmt_addr (str): Management IP address for device.
         """
         ports = self.conn.get_port_info(device_id=device_id)
         for port in ports:
@@ -352,7 +352,7 @@ class DnaCenterAdapter(DiffSync):
 
                     if port.get("addresses"):
                         for addr in port["addresses"]:
-                            if addr["address"]["ipAddress"]["address"] == dev.management_addr:
+                            if addr["address"]["ipAddress"]["address"] == mgmt_addr:
                                 primary = True
                             else:
                                 primary = False
