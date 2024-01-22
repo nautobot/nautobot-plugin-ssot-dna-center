@@ -110,13 +110,9 @@ class DnaCenterAdapter(DiffSync):
                 address, _ = self.conn.find_address_and_type(info=location["additionalInfo"])
                 latitude, longitude = self.conn.find_latitude_and_longitude(info=location["additionalInfo"])
                 if location["parentId"] in self.dnac_location_map:
-                    _area = (
-                        self.dnac_location_map[location["parentId"]]
-                        if location.get("parentId")
-                        else {"name": "Global", "parent": None}
-                    )
+                    _area = self.dnac_location_map[location["parentId"]]
                 else:
-                    _area = {"name": None, "parent": None}
+                    _area = {"name": "Global", "parent": None}
                 new_building = self.building(
                     name=location["name"],
                     address=address,
