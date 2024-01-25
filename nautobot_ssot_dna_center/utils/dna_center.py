@@ -195,15 +195,15 @@ class DnaCenterClient:
         Args:
             port_info (dict): Dictionary containing information about a port from DNAC.
         """
-        status = "active"
+        status = "Active"
         if port_info["status"] == "down" and port_info["adminStatus"] == "DOWN":
-            status = "maintenance"
+            status = "Maintenance"
 
         if port_info["status"] == "down" and port_info["adminStatus"] == "UP":
-            status = "failed"
+            status = "Failed"
 
         if port_info["status"] == "up" and port_info["adminStatus"] == "DOWN":
-            status = "planned"
+            status = "Planned"
         return status
 
     @staticmethod
