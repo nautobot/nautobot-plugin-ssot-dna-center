@@ -132,12 +132,13 @@ class IPAddress(DiffSyncModel):
     """DiffSync model for DNA Center IP addresses."""
 
     _modelname = "ipaddress"
-    _identifiers = ("address", "prefix")
+    _identifiers = ("address", "prefix", "namespace")
     _attributes = ("tenant",)
     _children = {}
 
     address: str
     prefix: str
+    namespace: str
     tenant: Optional[str]
 
     uuid: Optional[UUID]

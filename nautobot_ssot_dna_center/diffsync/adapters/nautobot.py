@@ -189,6 +189,7 @@ class NautobotAdapter(DiffSync):
         for ipaddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
             new_ipaddr = self.ipaddress(
                 address=str(ipaddr.address),
+                namespace=ipaddr.parent.namespace.name,
                 prefix=str(ipaddr.parent.prefix),
                 tenant=ipaddr.tenant.name if ipaddr.tenant else None,
                 uuid=ipaddr.id,
