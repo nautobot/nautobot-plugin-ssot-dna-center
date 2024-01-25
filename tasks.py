@@ -109,7 +109,7 @@ def run_command(context, command, **kwargs):
         if "nautobot" in results.stdout:
             compose_command = f"exec nautobot {command}"
         else:
-            compose_command = f"run --entrypoint '{command}' nautobot"
+            compose_command = f"run --entrypoint '' nautobot '{command}'"
 
         docker_compose(context, compose_command, pty=True)
 
