@@ -21,11 +21,12 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
     dnac = ObjectVar(
         model=ExternalIntegration,
         queryset=ExternalIntegration.objects.all(),
-        display_field="display_name",
+        display_field="display",
         required=True,
         label="DNAC Instance",
     )
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
+    bulk_import = BooleanVar(description="Perform bulk operations when importing data", default=False)
     tenant = ObjectVar(model=Tenant, label="Tenant", required=False)
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -88,6 +89,7 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
         memory_profiling,
         debug,
         dnac,
+        bulk_import,
         tenant,
         *args,
         **kwargs,  # pylint: disable=arguments-differ, too-many-arguments
@@ -96,6 +98,7 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
         self.dnac = dnac
         self.tenant = tenant
         self.debug = debug
+        self.bulk_import = bulk_import
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling
         super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)

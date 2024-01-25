@@ -10,10 +10,8 @@ from nautobot.dcim.models import (
     Location,
     LocationType,
 )
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, Status, Role
+from nautobot.extras.models import Role
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix, Namespace
-from nautobot.tenancy.models import Tenant
 from nautobot_ssot_dna_center.diffsync.models import base
 from nautobot_ssot_dna_center.utils.nautobot import add_software_lcm, assign_version_to_device, verify_platform
 
@@ -32,23 +30,23 @@ class NautobotArea(base.Area):
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
         try:
-            Location.objects.get(name=ids["name"])
+            diffsync.location_map[ids["name"]]
             diffsync.job.logger.warning(f"Region {ids['name']} already exists so won't be created.")
-        except Location.DoesNotExist:
+        except KeyError:
             if diffsync.job.debug:
                 diffsync.job.logger.info(f"Creating Region {ids['name']}.")
-            loc_type = LocationType.objects.get(name="Region")
             new_region = Location(
                 name=ids["name"],
-                location_type=loc_type,
-                status=Status.objects.get(name="Active"),
+                location_type_id=diffsync.locationtype_map["Region"],
+                status_id=diffsync.status_map["Active"],
             )
             if ids.get("parent"):
                 try:
-                    new_region.parent = Location.objects.get(name=ids["parent"])
-                except Location.DoesNotExist as err:
-                    diffsync.job.logger.warning(f"Unable to find Region {ids['parent']} for {ids['name']}. {err}")
-            new_region.validated_save()
+                    new_region.parent_id = diffsync.location_map[ids["parent"]]
+                except KeyError:
+                    diffsync.job.logger.warning(f"Unable to find Region {ids['parent']} for {ids['name']}.")
+            diffsync.objects_to_create["areas"].append(new_region)
+            diffsync.location_map[ids["name"]] = new_region.id
             return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
 
@@ -60,23 +58,23 @@ class NautobotBuilding(base.Building):
         """Create Site in Nautobot from Building object."""
         if diffsync.job.debug:
             diffsync.job.logger.info(f"Creating Site {ids['name']}.")
-        loc_type = LocationType.objects.get(name="Site")
         new_site = Location(
             name=ids["name"],
-            location_type=loc_type,
+            location_type_id=diffsync.locationtype_map["Site"],
             physical_address=attrs["address"] if attrs.get("address") else "",
-            status=Status.objects.get(name="Active"),
+            status_id=diffsync.status_map["Active"],
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
         )
         if attrs.get("tenant"):
-            new_site.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_site.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         try:
             if attrs.get("area"):
-                new_site.parent = Location.objects.get(name=attrs["area"])
+                new_site.parent_id = diffsync.location_map[attrs["area"]]
         except Location.DoesNotExist:
             diffsync.job.logger.warning(f"Unable to find parent {attrs['area']}")
-        new_site.validated_save()
+        diffsync.objects_to_create["buildings"].append(new_site)
+        diffsync.location_map[ids["name"]] = new_site.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -92,14 +90,14 @@ class NautobotBuilding(base.Building):
         if "address" in attrs:
             site.physical_address = attrs["address"]
         if "area" in attrs:
-            site.parent = Location.objects.get(name=attrs["area"])
+            site.parent_id = self.diffsync.location_map[attrs["area"]]
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
             site.longitude = attrs["longitude"]
         if "tenant" in attrs:
             if attrs.get("tenant"):
-                site.tenant = Tenant.objects.get(name=attrs["tenant"])
+                site.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
             else:
                 site.tenant = None
         site.validated_save()
@@ -127,16 +125,16 @@ class NautobotFloor(base.Floor):
         """Create LocationType: Floor in Nautobot from Floor object."""
         if diffsync.job.debug:
             diffsync.job.logger.info(f"Creating Floor {ids['name']}.")
-        loc_type = LocationType.objects.get(name="Floor")
         new_floor = Location(
             name=ids["name"],
-            status=Status.objects.get(name="Active"),
-            parent=Location.objects.get(name=ids["building"]),
-            location_type=loc_type,
+            status_id=diffsync.status_map["Active"],
+            parent_id=diffsync.location_map[ids["building"]],
+            location_type_id=diffsync.locationtype_map["Floor"],
         )
         if attrs.get("tenant"):
-            new_floor.tenant = Tenant.objects.get(name=attrs["tenant"])
-        new_floor.validated_save()
+            new_floor.tenant_id = diffsync.tenant_map[attrs["tenant"]]
+        diffsync.objects_to_create["floors"].append(new_floor)
+        diffsync.location_map[ids["name"]] = new_floor.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -146,7 +144,7 @@ class NautobotFloor(base.Floor):
             self.diffsync.job.logger.info(f"Updating Floor {floor.name} with {attrs}")
         if "tenant" in attrs:
             if attrs.get("tenant"):
-                floor.tenant = Tenant.objects.get(name=attrs["tenant"])
+                floor.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
             else:
                 floor.tenant = None
         floor.validated_save()
@@ -169,7 +167,6 @@ class NautobotDevice(base.Device):
         """Create Device in Nautobot from NautobotDevice object."""
         if diffsync.job.debug:
             diffsync.job.logger.info(f"Creating Device {ids['name']}.")
-        site = Location.objects.get(name=attrs["site"])
         manufacturer, _ = Manufacturer.objects.get_or_create(name=attrs["vendor"])
         device_role, created = Role.objects.get_or_create(name=attrs["role"])
         if created:
@@ -177,24 +174,19 @@ class NautobotDevice(base.Device):
             device_role.validated_save()
         device_type, _ = DeviceType.objects.get_or_create(model=attrs["model"], manufacturer=manufacturer)
         platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
-        status = Status.objects.get(name=attrs["status"])
         new_device = Device(
             name=ids["name"],
-            status=status,
+            status_id=diffsync.status_map[attrs["status"]],
             role=device_role,
-            location=site,
+            location_id=diffsync.location_map[attrs["site"]],
             device_type=device_type,
             serial=attrs["serial"],
             platform_id=platform.id,
         )
         if attrs.get("floor"):
-            loc_type = LocationType.objects.get(name="Floor")
-            loc, _ = Location.objects.get_or_create(
-                name=attrs["floor"], location_type=loc_type, parent=site, status=Status.objects.get(name="Active")
-            )
-            new_device.location = loc
+            new_device.location_id = diffsync.location_map[attrs["floor"]]
         if attrs.get("tenant"):
-            new_device.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_device.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
@@ -202,7 +194,8 @@ class NautobotDevice(base.Device):
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.custom_field_data.update({"system_of_record": "DNA Center"})
         new_device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        new_device.validated_save()
+        diffsync.objects_to_create["devices"].append(new_device)
+        diffsync.device_map[ids["name"]] = new_device.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -211,30 +204,31 @@ class NautobotDevice(base.Device):
         if self.diffsync.job.debug:
             self.diffsync.job.logger.info(f"Updating Device {device.name} with {attrs}")
         if "status" in attrs:
-            device.status = Status.objects.get(name=attrs["status"])
+            device.status_id = self.diffsync.status_map[attrs["status"]]
         if "role" in attrs:
             dev_role, created = Role.objects.get_or_create(name=attrs["role"])
             device.role = dev_role
             if created:
                 dev_role.content_types.add(ContentType.objects.get_for_model(Device))
         if "site" in attrs:
-            device.location = Location.objects.get(name=attrs["site"])
+            device.location_id = self.diffsync.location_map[attrs["site"]]
         if "floor" in attrs:
-            loc_type = LocationType.objects.get(name="Floor")
+            loc_type = self.diffsync.locationtype_map["Floor"]
             if attrs.get("floor"):
-                if attrs.get("Location"):
-                    site = attrs["Location"]
+                if attrs.get("site"):
+                    site = attrs["site"]
                 else:
                     site = device.location.name
                 location, _ = Location.objects.get_or_create(
                     name=attrs["floor"],
-                    location_type=loc_type,
-                    site=Location.objects.get(name=site),
-                    status=Status.objects.get(name="Active"),
+                    location_type_id=loc_type,
+                    parent_id=self.diffsync.location_type[site],
+                    status_id=self.diffsync.status_map["Active"],
                 )
+                location = location.id
             else:
                 location = None
-            device.location = location
+            device.location_id = location
         if "model" in attrs:
             if attrs.get("vendor"):
                 vendor = Manufacturer.objects.get_or_create(name=attrs["vendor"])[0]
@@ -249,7 +243,7 @@ class NautobotDevice(base.Device):
             device.platform = verify_platform(platform_name=attrs["platform"], manu=manufacturer.id)
         if "tenant" in attrs:
             if attrs.get("tenant"):
-                device.tenant = Tenant.objects.get(name=attrs["tenant"])
+                device.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
             else:
                 device.tenant = None
         if "version" in attrs:
@@ -283,19 +277,22 @@ class NautobotPort(base.Port):
             diffsync.job.logger.info(f"Creating Port {ids['name']} for Device {ids['device']}.")
         new_port = Interface(
             name=ids["name"],
-            device=Device.objects.get(name=ids["device"]),
+            device_id=diffsync.device_map[ids["device"]],
             description=attrs["description"],
             enabled=attrs["enabled"],
             type=attrs["port_type"],
             mode=attrs["port_mode"],
             mac_address=attrs["mac_addr"],
             mtu=attrs["mtu"],
-            status=Status.objects.get(name=attrs["status"]),
+            status_id=diffsync.status_map[attrs["status"]],
             mgmt_only=True if "Management" in ids["name"] else False,
         )
         new_port.custom_field_data.update({"system_of_record": "DNA Center"})
         new_port.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        new_port.validated_save()
+        diffsync.objects_to_create["interfaces"].append(new_port)
+        if ids["device"] not in diffsync.port_map:
+            diffsync.port_map[ids["device"]] = {}
+        diffsync.port_map[ids["device"]][ids["name"]] = new_port.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -314,7 +311,7 @@ class NautobotPort(base.Port):
         if "mtu" in attrs:
             port.mtu = attrs["mtu"]
         if "status" in attrs:
-            port.status = Status.objects.get(name=attrs["status"])
+            port.status_id = self.dfifsync.status_map[attrs["status"]]
         if "enabled" in attrs:
             port.enabled = attrs["enabled"]
         port.custom_field_data.update({"system_of_record": "DNA Center"})
@@ -338,18 +335,23 @@ class NautobotPrefix(base.Prefix):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Prefix in Nautobot from NautobotManagementPrefix objects."""
-        namespace = Namespace.objects.get_or_create(name=ids["namespace"])[0]
+        if ids["namespace"] in diffsync.namespace_map:
+            namespace = diffsync.namespace_map[ids["namespace"]]
+        else:
+            namespace = Namespace.objects.get_or_create(name=ids["namespace"])[0].id
         if diffsync.job.debug:
             diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
         new_prefix = Prefix(
             prefix=ids["prefix"],
-            namespace=namespace,
+            namespace_id=namespace,
+            status_id=diffsync.status_map["Active"],
         )
         if attrs.get("tenant"):
-            new_prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_prefix.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         new_prefix.custom_field_data.update({"system_of_record": "DNA Center"})
         new_prefix.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        new_prefix.validated_save()
+        diffsync.objects_to_create["prefixes"].append(new_prefix)
+        diffsync.prefix_map[ids["prefix"]] = new_prefix.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -357,7 +359,7 @@ class NautobotPrefix(base.Prefix):
         prefix = Prefix.objects.get(id=self.uuid)
         if "tenant" in attrs:
             if attrs.get("tenant"):
-                prefix.tenant = Tenant.objects.get(name=attrs["tenant"])
+                prefix.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
             else:
                 prefix.tenant = None
         prefix.validated_save()
@@ -382,14 +384,16 @@ class NautobotIPAddress(base.IPAddress):
         """Create IPAddress in Nautobot from IPAddress object."""
         new_ip = IPAddress(
             address=ids["address"],
-            parent=Prefix.objects.get(prefix=ids["prefix"]),
-            status=Status.objects.get(name="Active"),
+            namespace=diffsync.namespace_map[ids["namespace"]],
+            status_id=diffsync.status_map["Active"],
         )
+        diffsync.ipaddr_pf_map[ids["address"]] = diffsync.prefix_map[ids["prefix"]]
         if attrs.get("tenant"):
-            new_ip.tenant = Tenant.objects.get(name=attrs["tenant"])
+            new_ip.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
         new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        new_ip.validated_save()
+        diffsync.objects_to_create["ipaddresses"].append(new_ip)
+        diffsync.ipaddr_map[ids["address"]] = new_ip.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -397,7 +401,7 @@ class NautobotIPAddress(base.IPAddress):
         ipaddr = IPAddress.objects.get(id=self.uuid)
         if "tenant" in attrs:
             if attrs.get("tenant"):
-                ipaddr.tenant = Tenant.objects.get(name=attrs["tenant"])
+                ipaddr.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
             else:
                 ipaddr.tenant = None
         ipaddr.custom_field_data.update({"system_of_record": "DNA Center"})
@@ -420,16 +424,19 @@ class NautobotIPAddressOnInterface(base.IPAddressOnInterface):
     def create(cls, diffsync, ids, attrs):
         """Create IPAddressToInterface in Nautobot from IPAddressOnInterface object."""
         new_map = IPAddressToInterface(
-            ip_address=IPAddress.objects.get(address=ids["address"]),
-            interface=Interface.objects.get(name=ids["port"], device__name=ids["device"]),
+            ip_address_id=diffsync.ipaddr_map[ids["address"]],
+            interface_id=diffsync.port_map[ids["device"]][ids["port"]],
         )
-        new_map.validated_save()
+        diffsync.objects_to_create["mappings"].append(new_map)
         if attrs.get("primary"):
-            if new_map.ip_address.ip_version == 4:
-                new_map.interface.device.primary_ip4 = new_map.ip_address
+            if ":" in ids["address"]:
+                diffsync.objects_to_create["primary_ip6"].append(
+                    (diffsync.device_map[ids["device"]], diffsync.ipaddr_map[ids["address"]])
+                )
             else:
-                new_map.interface.device.primary_ip6 = new_map.ip_address
-            new_map.interface.device.validated_save()
+                diffsync.objects_to_create["primary_ip4"].append(
+                    (diffsync.device_map[ids["device"]], diffsync.ipaddr_map[ids["address"]])
+                )
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
