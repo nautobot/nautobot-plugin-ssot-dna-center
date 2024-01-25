@@ -213,7 +213,10 @@ class NautobotDevice(base.Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.role = Role.objects.get_or_create(name=attrs["role"])[0]
+            dev_role, created = Role.objects.get_or_create(name=attrs["role"])
+            device.role = dev_role
+            if created:
+                dev_role.content_types.add(ContentType.objects.get_for_model(Device))
         if "site" in attrs:
             device.location = Location.objects.get(name=attrs["site"])
         if "floor" in attrs:
