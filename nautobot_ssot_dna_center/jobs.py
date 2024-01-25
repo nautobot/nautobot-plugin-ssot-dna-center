@@ -100,9 +100,6 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
         self.memory_profiling = memory_profiling
         super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)
 
-    def execute_sync(self):
-        """Execute the synchronization of data from DNA Center to Nautobot."""
-
 
 jobs = [DnaCenterDataSource]
 register_jobs(*jobs)
