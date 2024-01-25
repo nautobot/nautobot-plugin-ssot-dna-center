@@ -77,6 +77,7 @@ exclude = '''
 # Include the pylint_django plugin to avoid spurious warnings about Django patterns
 load-plugins="pylint_django, pylint_nautobot"
 ignore=".venv"
+jobs = 0
 
 [tool.pylint.basic]
 # No docstrings required for private methods (Pylint default), or for test_ functions, or for inner Meta classes.
