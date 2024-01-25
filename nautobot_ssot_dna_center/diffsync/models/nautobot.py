@@ -196,13 +196,6 @@ class NautobotDevice(base.Device):
         if attrs.get("tenant"):
             new_device.tenant = Tenant.objects.get(name=attrs["tenant"])
         if attrs.get("version"):
-            _cf_dict = {
-                "key": "os_version",
-                "type": CustomFieldTypeChoices.TYPE_TEXT,
-                "label": "OS Version",
-            }
-            field, _ = CustomField.objects.get_or_create(key=_cf_dict["key"], defaults=_cf_dict)
-            field.content_types.add(ContentType.objects.get_for_model(Device))
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
                 lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.name, version=attrs["version"])
@@ -257,14 +250,6 @@ class NautobotDevice(base.Device):
             else:
                 device.tenant = None
         if "version" in attrs:
-            _cf_dict = {
-                "name": "os_version",
-                "key": "os_version",
-                "type": CustomFieldTypeChoices.TYPE_TEXT,
-                "label": "OS Version",
-            }
-            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-            field.content_types.add(ContentType.objects.get_for_model(Device))
             device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
                 platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
