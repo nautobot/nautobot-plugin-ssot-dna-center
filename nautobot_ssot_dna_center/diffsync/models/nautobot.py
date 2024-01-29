@@ -210,25 +210,10 @@ class NautobotDevice(base.Device):
             device.role = dev_role
             if created:
                 dev_role.content_types.add(ContentType.objects.get_for_model(Device))
-        if "site" in attrs:
+        if attrs.get("site"):
             device.location_id = self.diffsync.location_map[attrs["site"]]
-        if "floor" in attrs:
-            loc_type = self.diffsync.locationtype_map["Floor"]
-            if attrs.get("floor"):
-                if attrs.get("site"):
-                    site = attrs["site"]
-                else:
-                    site = device.location.name
-                location, _ = Location.objects.get_or_create(
-                    name=attrs["floor"],
-                    location_type_id=loc_type,
-                    parent_id=self.diffsync.location_type[site],
-                    status_id=self.diffsync.status_map["Active"],
-                )
-                location = location.id
-            else:
-                location = None
-            device.location_id = location
+        if attrs.get("floor"):
+            device.location_id = self.diffsync.location_map[attrs["floor"]]
         if "model" in attrs:
             if attrs.get("vendor"):
                 vendor = Manufacturer.objects.get_or_create(name=attrs["vendor"])[0]
