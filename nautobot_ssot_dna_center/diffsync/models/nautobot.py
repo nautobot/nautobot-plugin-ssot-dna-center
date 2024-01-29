@@ -296,7 +296,7 @@ class NautobotPort(base.Port):
         if "mtu" in attrs:
             port.mtu = attrs["mtu"]
         if "status" in attrs:
-            port.status_id = self.dfifsync.status_map[attrs["status"]]
+            port.status_id = self.diffsync.status_map[attrs["status"]]
         if "enabled" in attrs:
             port.enabled = attrs["enabled"]
         port.custom_field_data.update({"system_of_record": "DNA Center"})
