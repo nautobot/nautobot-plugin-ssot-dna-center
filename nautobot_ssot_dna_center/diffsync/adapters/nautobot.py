@@ -282,21 +282,6 @@ class NautobotAdapter(DiffSync):
                         nautobot_obj.validated_save()
                     except ValidationError as err:
                         self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
-        if LIFECYCLE_MGMT:
-            if len(self.objects_to_create["versions"]) > 0:
-                self.job.logger.info(
-                    f"Importing {len(self.objects_to_create['versions'])} Software Versions in the Device Lifecycle App."
-                )
-                for ver in self.objects_to_create["versions"]:
-                    self.job.logger.info(f"Saving {ver}")
-                    ver.validated_save()
-            if len(self.objects_to_create["relationship_assocs"]) > 0:
-                self.job.logger.info(
-                    f"Creating {len(self.objects_to_create['relationship_assocs'])} Relationships between Devices and Software Version"
-                )
-                for rel in self.objects_to_create["relationship_assocs"]:
-                    self.job.logger.info(f"Saving {rel}")
-                    rel.validated_save()
         if len(self.objects_to_create["primary_ip4"]) > 0:
             self.job.logger.info("Performing assignment of device management IPv4 addresses in Nautobot.")
             for _dev in self.objects_to_create["primary_ip4"]:
@@ -325,12 +310,6 @@ class NautobotAdapter(DiffSync):
         if len(self.objects_to_create["devices"]) > 0:
             self.job.logger.info("Performing bulk create of Devices in Nautobot")
             OrmDevice.objects.bulk_create(self.objects_to_create["devices"], batch_size=250)
-        if LIFECYCLE_MGMT:
-            if len(self.objects_to_create["relationship_assocs"]) > 0:
-                self.job.logger.info("Creating Relationships between Devices and Software Version")
-                OrmRelationshipAssociation.objects.bulk_create(
-                    self.objects_to_create["relationship_assocs"], batch_size=250
-                )
         if len(self.objects_to_create["interfaces"]) > 0:
             self.job.logger.info("Performing bulk create of Interfaces in Nautobot")
             OrmInterface.objects.bulk_create(self.objects_to_create["interfaces"], batch_size=250)
