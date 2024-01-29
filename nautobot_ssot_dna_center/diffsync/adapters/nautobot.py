@@ -318,9 +318,15 @@ class NautobotAdapter(DiffSync):
             OrmPrefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=250)
         if len(self.objects_to_create["ipaddresses"]) > 0:
             self.job.logger.info("Performing bulk create of IP Addresses in Nautobot")
-            for addr in self.objects_to_create["ipaddresses"]:
-                addr.parent_id = self.ipaddr_pf_map[addr.address]
-            OrmIPAddress.objects.bulk_create(self.objects_to_create["ipaddrs"], batch_size=250)
+            OrmIPAddress.objects.bulk_create(self.objects_to_create["ipaddresses"], batch_size=250)
+        if len(self.objects_to_create["ipaddrs-to-prefixes"]) > 0:
+            self.job.logger.info("Assigning parent Prefix to IPAddresses with bulk_update.")
+            assigned_parents = []
+            for pair in self.objects_to_create["ipaddrs-to-prefixes"]:
+                ipaddr = pair[0]
+                ipaddr.parent_id = pair[1]
+                assigned_parents.append(ipaddr)
+            OrmIPAddress.objects.bulk_update(assigned_parents, ["parent_id"], batch_size=250)
         if len(self.objects_to_create["mappings"]) > 0:
             self.job.logger.info("Performing assignment of IPAddress to Interface.")
             OrmIPAddressToInterface.objects.bulk_create(self.objects_to_create["mappings"], batch_size=250)

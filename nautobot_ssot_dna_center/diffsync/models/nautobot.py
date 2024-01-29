@@ -378,7 +378,7 @@ class NautobotIPAddress(base.IPAddress):
         new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
         new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         diffsync.objects_to_create["ipaddresses"].append(new_ip)
-        diffsync.ipaddr_map[ids["address"]] = new_ip.id
+        diffsync.objects_to_create["ipaddrs-to-prefixes"].append((new_ip, diffsync.prefix_map[ids["prefix"]]))
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
