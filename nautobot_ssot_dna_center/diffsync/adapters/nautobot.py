@@ -266,9 +266,6 @@ class NautobotAdapter(DiffSync):
     def update_database(self):
         """Perform databse update using normal operations."""
         for obj_type in [
-            "areas",
-            "buildings",
-            "floors",
             "devices",
             "interfaces",
             "prefixes",
@@ -325,19 +322,6 @@ class NautobotAdapter(DiffSync):
 
     def bulk_create_update(self):
         """Perform database update using bulk operations."""
-        if len(self.objects_to_create["areas"]) > 0:
-            self.job.logger.info("Performing bulk create of Areas in Nautobot")
-            OrmLocation.objects.bulk_create(self.objects_to_create["areas"], batch_size=250)
-        if len(self.objects_to_create["buildings"]) > 0:
-            self.job.logger.info("Performing bulk create of Buildings in Nautobot")
-            OrmLocation.objects.bulk_create(self.objects_to_create["buildings"], batch_size=250)
-        if len(self.objects_to_create["floors"]) > 0:
-            self.job.logger.info("Performing bulk create of Floors in Nautobot")
-            OrmLocation.objects.bulk_create(self.objects_to_create["floors"], batch_size=250)
-        if LIFECYCLE_MGMT:
-            if len(self.objects_to_create["versions"]) > 0:
-                self.job.logger.info("Performing bulk creation of Software Versions in Device Lifecycle App.")
-                SoftwareLCM.objects.bulk_create(self.objects_to_create["versions"], batch_size=250)
         if len(self.objects_to_create["devices"]) > 0:
             self.job.logger.info("Performing bulk create of Devices in Nautobot")
             OrmDevice.objects.bulk_create(self.objects_to_create["devices"], batch_size=250)

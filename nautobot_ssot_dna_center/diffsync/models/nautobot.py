@@ -45,7 +45,7 @@ class NautobotArea(base.Area):
                     new_region.parent_id = diffsync.location_map[ids["parent"]]
                 except KeyError:
                     diffsync.job.logger.warning(f"Unable to find Region {ids['parent']} for {ids['name']}.")
-            diffsync.objects_to_create["areas"].append(new_region)
+            new_region.validated_save()
             diffsync.location_map[ids["name"]] = new_region.id
             return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -73,7 +73,7 @@ class NautobotBuilding(base.Building):
                 new_site.parent_id = diffsync.location_map[attrs["area"]]
         except Location.DoesNotExist:
             diffsync.job.logger.warning(f"Unable to find parent {attrs['area']}")
-        diffsync.objects_to_create["buildings"].append(new_site)
+        new_site.validated_save()
         diffsync.location_map[ids["name"]] = new_site.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -133,7 +133,7 @@ class NautobotFloor(base.Floor):
         )
         if attrs.get("tenant"):
             new_floor.tenant_id = diffsync.tenant_map[attrs["tenant"]]
-        diffsync.objects_to_create["floors"].append(new_floor)
+        new_floor.validated_save()
         diffsync.location_map[ids["name"]] = new_floor.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
