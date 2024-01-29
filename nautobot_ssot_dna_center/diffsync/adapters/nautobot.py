@@ -168,7 +168,7 @@ class NautobotAdapter(DiffSync):
                 floor=dev.location.name if dev.location else None,
                 serial=dev.serial,
                 version=version,
-                platform=dev.platform.name if dev.platform else "",
+                platform=dev.platform.network_driver if dev.platform else "",
                 tenant=dev.tenant.name if dev.tenant else None,
                 uuid=dev.id,
             )
@@ -214,7 +214,8 @@ class NautobotAdapter(DiffSync):
             self.ipaddr_map[str(ipaddr.address)] = ipaddr.id
             self.ipaddr_pf_map[str(ipaddr.address)] = ipaddr.parent.id
             new_ipaddr = self.ipaddress(
-                address=str(ipaddr.address),
+                host=str(ipaddr.host),
+                mask_length=ipaddr.mask_length,
                 namespace=ipaddr.parent.namespace.name,
                 prefix=str(ipaddr.parent.prefix),
                 tenant=ipaddr.tenant.name if ipaddr.tenant else None,
@@ -228,7 +229,7 @@ class NautobotAdapter(DiffSync):
             ip_address___custom_field_data__system_of_record="DNA Center"
         ):
             new_ipaddr_to_interface = self.ip_on_intf(
-                address=str(mapping.ip_address.address),
+                host=str(mapping.ip_address.host),
                 device=mapping.interface.device.name,
                 port=mapping.interface.name,
                 primary=bool(
@@ -361,3 +362,4 @@ class NautobotAdapter(DiffSync):
         self.load_ports()
         self.load_prefixes()
         self.load_ipaddresses()
+        self.load_ipaddress_to_interface()

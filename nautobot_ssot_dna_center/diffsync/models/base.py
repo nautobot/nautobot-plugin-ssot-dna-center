@@ -132,11 +132,12 @@ class IPAddress(DiffSyncModel):
     """DiffSync model for DNA Center IP addresses."""
 
     _modelname = "ipaddress"
-    _identifiers = ("address", "prefix", "namespace")
-    _attributes = ("tenant",)
+    _identifiers = ("host", "prefix", "namespace")
+    _attributes = ("mask_length", "tenant")
     _children = {}
 
-    address: str
+    host: str
+    mask_length: int
     prefix: str
     namespace: str
     tenant: Optional[str]
@@ -148,11 +149,11 @@ class IPAddressOnInterface(DiffSyncModel):
     """DiffSync model for DNA Center tracking IPAddress on particular Device interfaces."""
 
     _modelname = "ip_on_intf"
-    _identifiers = ("address", "device", "port")
+    _identifiers = ("host", "device", "port")
     _attributes = ("primary",)
     _children = {}
 
-    address: str
+    host: str
     device: str
     port: str
     primary: bool
