@@ -1,4 +1,5 @@
 """Nautobot DiffSync models for DNA Center SSoT."""
+
 from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -379,6 +380,7 @@ class NautobotIPAddress(base.IPAddress):
         diffsync.objects_to_create["ipaddresses"].append(new_ip)
         diffsync.objects_to_create["ipaddrs-to-prefixes"].append((new_ip, diffsync.prefix_map[ids["prefix"]]))
         diffsync.ipaddr_map[ids["host"]] = new_ip.id
+        diffsync.ipaddr_pf_map[ids["host"]] = diffsync.prefix_map[ids["prefix"]]
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):

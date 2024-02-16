@@ -1,4 +1,5 @@
 """Nautobot Adapter for DNA Center SSoT plugin."""
+
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM  # noqa: F401
 
@@ -211,8 +212,8 @@ class NautobotAdapter(DiffSync):
     def load_ipaddresses(self):
         """Load IPAddress data from Nautobot into DiffSync models."""
         for ipaddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
-            self.ipaddr_map[str(ipaddr.address)] = ipaddr.id
-            self.ipaddr_pf_map[str(ipaddr.address)] = ipaddr.parent.id
+            self.ipaddr_map[str(ipaddr.host)] = ipaddr.id
+            self.ipaddr_pf_map[str(ipaddr.host)] = ipaddr.parent.id
             new_ipaddr = self.ipaddress(
                 host=str(ipaddr.host),
                 mask_length=ipaddr.mask_length,
@@ -279,7 +280,7 @@ class NautobotAdapter(DiffSync):
                     try:
                         self.job.logger.info(f"Saving {nautobot_obj}.")
                         if obj_type == "ipaddrs":
-                            nautobot_obj.parent_id = self.ipaddr_pf_map[nautobot_obj.address]
+                            nautobot_obj.parent_id = self.ipaddr_pf_map[nautobot_obj.host]
                         nautobot_obj.validated_save()
                     except ValidationError as err:
                         self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
