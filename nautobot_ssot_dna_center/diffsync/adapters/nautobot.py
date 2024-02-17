@@ -8,7 +8,7 @@ except ImportError:
     LIFECYCLE_MGMT = False
 
 from collections import defaultdict
-
+from typing import Optional
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.core.exceptions import ValidationError
@@ -26,7 +26,7 @@ from nautobot.ipam.models import IPAddressToInterface as OrmIPAddressToInterface
 from nautobot.ipam.models import Namespace
 from nautobot.ipam.models import Prefix as OrmPrefix
 from nautobot.tenancy.models import Tenant as OrmTenant
-
+from nautobot_ssot.jobs.base import DataTarget
 from nautobot_ssot_dna_center.diffsync.models.nautobot import (
     NautobotArea,
     NautobotBuilding,
@@ -64,11 +64,11 @@ class NautobotAdapter(DiffSync):
     ipaddr_map = {}
     ipaddr_pf_map = {}
 
-    def __init__(self, *args, job=None, sync=None, **kwargs):
+    def __init__(self, *args, job: Optional[DataTarget] = None, sync=None, **kwargs):
         """Initialize Nautobot.
 
         Args:
-            job (object, optional): Nautobot job. Defaults to None.
+            job (DataTarget, optional): Nautobot job. Defaults to None.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
         """
         super().__init__(*args, **kwargs)
