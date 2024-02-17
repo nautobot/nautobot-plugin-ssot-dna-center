@@ -13,6 +13,7 @@ from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
+from django.db.utils import IntegrityError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.dcim.models import Location as OrmLocation
@@ -283,6 +284,8 @@ class NautobotAdapter(DiffSync):
                             nautobot_obj.parent_id = self.ipaddr_pf_map[nautobot_obj.host]
                         nautobot_obj.validated_save()
                     except ValidationError as err:
+                        self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
+                    except IntegrityError as err:
                         self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
         if len(self.objects_to_create["primary_ip4"]) > 0:
             self.job.logger.info("Performing assignment of device management IPv4 addresses in Nautobot.")
