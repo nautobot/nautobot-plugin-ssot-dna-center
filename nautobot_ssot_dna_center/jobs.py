@@ -47,8 +47,8 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
     def data_mappings(cls):
         """List describing the data mappings involved in this DataSource."""
         return (
-            DataMapping("Areas", None, "Regions", reverse("dcim:location_list")),
-            DataMapping("Buildings", None, "Sites", reverse("dcim:location_list")),
+            DataMapping("Areas", None, "Locations", reverse("dcim:location_list")),
+            DataMapping("Buildings", None, "Locations", reverse("dcim:location_list")),
             DataMapping("Floors", None, "Locations", reverse("dcim:location_list")),
             DataMapping("Devices", None, "Devices", reverse("dcim:device_list")),
             DataMapping("Interfaces", None, "Interfaces", reverse("dcim:interface_list")),
