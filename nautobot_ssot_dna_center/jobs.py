@@ -41,7 +41,7 @@ class DnaCenterDataSource(DataSource):  # pylint: disable=too-many-instance-attr
     @classmethod
     def config_information(cls):
         """Dictionary describing the configuration of this DataSource."""
-        return {"Instances": "Found in Plugins menu."}
+        return {"Instances": "Found in Extensibility -> External Integrations menu."}
 
     @classmethod
     def data_mappings(cls):
