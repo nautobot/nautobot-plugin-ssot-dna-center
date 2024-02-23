@@ -1,4 +1,5 @@
 """DiffSyncModel subclasses for Nautobot-to-DNA Center data sync."""
+
 from typing import Optional, List
 from uuid import UUID
 from diffsync import DiffSyncModel
@@ -132,8 +133,8 @@ class IPAddress(DiffSyncModel):
     """DiffSync model for DNA Center IP addresses."""
 
     _modelname = "ipaddress"
-    _identifiers = ("host", "prefix", "namespace")
-    _attributes = ("mask_length", "tenant")
+    _identifiers = ("host", "namespace")
+    _attributes = ("mask_length", "prefix", "tenant")
     _children = {}
 
     host: str

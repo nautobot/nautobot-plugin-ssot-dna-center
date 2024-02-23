@@ -378,14 +378,21 @@ class NautobotIPAddress(base.IPAddress):
         new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
         new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
         diffsync.objects_to_create["ipaddresses"].append(new_ip)
-        diffsync.objects_to_create["ipaddrs-to-prefixes"].append((new_ip, diffsync.prefix_map[ids["prefix"]]))
+        diffsync.objects_to_create["ipaddrs-to-prefixes"].append((new_ip, diffsync.prefix_map[attrs["prefix"]]))
         diffsync.ipaddr_map[ids["host"]] = new_ip.id
-        diffsync.ipaddr_pf_map[ids["host"]] = diffsync.prefix_map[ids["prefix"]]
+        diffsync.ipaddr_pf_map[ids["host"]] = diffsync.prefix_map[attrs["prefix"]]
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update IPAddress in Nautobot from IPAddress object."""
         ipaddr = IPAddress.objects.get(id=self.uuid)
+        if "prefix" in attrs:
+            pf_name = f"{attrs['prefix']}__{self.namespace}"
+            pfs_to_create = self.diffsync.objects_to_create["prefixes"]
+            if pf_name in pfs_to_create:
+                prefix = pfs_to_create.pop(pfs_to_create.index(pf_name))
+                prefix.validated_save()
+            ipaddr.parent_id = self.diffsync.prefix_map[attrs["prefix"]]
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 ipaddr.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
