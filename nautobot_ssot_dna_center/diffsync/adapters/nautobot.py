@@ -64,16 +64,20 @@ class NautobotAdapter(DiffSync):
     ipaddr_map = {}
     ipaddr_pf_map = {}
 
-    def __init__(self, *args, job: Optional[DataTarget] = None, sync=None, **kwargs):
+    def __init__(
+        self, *args, job: Optional[DataTarget] = None, sync=None, tenant: Optional[OrmTenant] = None, **kwargs
+    ):
         """Initialize Nautobot.
 
         Args:
             job (DataTarget, optional): Nautobot job. Defaults to None.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
+            tenant (OrmTenant, optional): Tenant defined in Job form that all non-location objects should belong to.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self.tenant = tenant
         self.objects_to_create = defaultdict(list)
         self.objects_to_delete = defaultdict(list)
 
@@ -149,7 +153,11 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Device data from Nautobot into DiffSync models."""
-        for dev in OrmDevice.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        if self.tenant:
+            devices = OrmDevice.objects.filter(tenant=self.tenant)
+        else:
+            devices = OrmDevice.objects.filter(_custom_field_data__system_of_record="DNA Center")
+        for dev in devices:
             self.device_map[dev.name] = dev.id
             version = dev.custom_field_data.get("os_version")
             if LIFECYCLE_MGMT:
@@ -178,7 +186,11 @@ class NautobotAdapter(DiffSync):
 
     def load_ports(self):
         """Load Interface data from Nautobot into DiffSync models."""
-        for port in OrmInterface.objects.filter(device___custom_field_data__system_of_record="DNA Center"):
+        if self.tenant:
+            ports = OrmInterface.objects.filter(tenant=self.tenant)
+        else:
+            ports = OrmInterface.objects.filter(device___custom_field_data__system_of_record="DNA Center")
+        for port in ports:
             if port.device.name not in self.port_map:
                 self.port_map[port.device.name] = {}
             self.port_map[port.device.name][port.name] = port.id
@@ -200,7 +212,11 @@ class NautobotAdapter(DiffSync):
 
     def load_prefixes(self):
         """Load Prefix data from Nautobot into DiffSync models."""
-        for prefix in OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        if self.tenant:
+            prefixes = OrmPrefix.objects.filter(tenant=self.tenant)
+        else:
+            prefixes = OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center")
+        for prefix in prefixes:
             self.prefix_map[str(prefix.prefix)] = prefix.id
             new_prefix = self.prefix(
                 prefix=str(prefix.prefix),
@@ -212,7 +228,11 @@ class NautobotAdapter(DiffSync):
 
     def load_ipaddresses(self):
         """Load IPAddress data from Nautobot into DiffSync models."""
-        for ipaddr in OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center"):
+        if self.tenant:
+            addresses = OrmIPAddress.objects.filter(tenant=self.tenant)
+        else:
+            addresses = OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center")
+        for ipaddr in addresses:
             self.ipaddr_map[str(ipaddr.host)] = ipaddr.id
             self.ipaddr_pf_map[str(ipaddr.host)] = ipaddr.parent.id
             new_ipaddr = self.ipaddress(
@@ -227,9 +247,13 @@ class NautobotAdapter(DiffSync):
 
     def load_ipaddress_to_interface(self):
         """Load IPAddressonInterface data from Nautobot into DiffSync models."""
-        for mapping in OrmIPAddressToInterface.objects.filter(
-            ip_address___custom_field_data__system_of_record="DNA Center"
-        ):
+        if self.tenant:
+            mappings = OrmIPAddressToInterface.objects.filter(ip_address___tenant=self.tenant)
+        else:
+            mappings = OrmIPAddressToInterface.objects.filter(
+                ip_address___custom_field_data__system_of_record="DNA Center"
+            )
+        for mapping in mappings:
             new_ipaddr_to_interface = self.ip_on_intf(
                 host=str(mapping.ip_address.host),
                 device=mapping.interface.device.name,
