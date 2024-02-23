@@ -248,7 +248,7 @@ class NautobotAdapter(DiffSync):
     def load_ipaddress_to_interface(self):
         """Load IPAddressonInterface data from Nautobot into DiffSync models."""
         if self.tenant:
-            mappings = OrmIPAddressToInterface.objects.filter(ip_address___tenant=self.tenant)
+            mappings = OrmIPAddressToInterface.objects.filter(ip_address__tenant=self.tenant)
         else:
             mappings = OrmIPAddressToInterface.objects.filter(
                 ip_address___custom_field_data__system_of_record="DNA Center"
