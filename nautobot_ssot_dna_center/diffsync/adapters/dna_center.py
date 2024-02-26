@@ -1,4 +1,5 @@
 """Nautobot SSoT for Cisco DNA Center Adapter for DNA Center SSoT plugin."""
+
 from typing import List
 import json
 from netutils.ip import ipaddress_interface, netmask_to_cidr
@@ -251,7 +252,11 @@ class DnaCenterAdapter(DiffSync):
                 loc_data = self.conn.parse_site_hierarchy(
                     location_map=self.dnac_location_map, site_hier=dev_details["siteHierarchyGraphId"]
                 )
-            if dev_details and not dev_details.get("siteHierarchyGraphId") or loc_data.get("building") == "Unassigned":
+            if (
+                (dev_details and not dev_details.get("siteHierarchyGraphId"))
+                or loc_data.get("building") == "Unassigned"
+                or not loc_data.get("building")
+            ):
                 self.job.logger.warning(f"Device {dev['hostname']} is missing building so will not be imported.")
                 dev["field_validation"] = {
                     "reason": "Missing building assignment.",
@@ -423,9 +428,7 @@ class DnaCenterAdapter(DiffSync):
         try:
             self.get(self.ip_on_intf, {"host": host, "prefix": prefix, "device": device, "port": port})
         except ObjectNotFound:
-            new_ipaddr_to_interface = self.ip_on_intf(
-                host=host, device=device, port=port, primary=primary, uuid=None
-            )
+            new_ipaddr_to_interface = self.ip_on_intf(host=host, device=device, port=port, primary=primary, uuid=None)
             self.add(new_ipaddr_to_interface)
 
     def load(self):
