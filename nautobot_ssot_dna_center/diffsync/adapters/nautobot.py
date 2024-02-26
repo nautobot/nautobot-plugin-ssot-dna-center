@@ -10,6 +10,7 @@ except ImportError:
 from collections import defaultdict
 from typing import Optional
 from diffsync import DiffSync
+from diffsync.enum import DiffSyncModelFlags
 from diffsync.exceptions import ObjectNotFound
 from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
@@ -182,6 +183,8 @@ class NautobotAdapter(DiffSync):
                 tenant=dev.tenant.name if dev.tenant else None,
                 uuid=dev.id,
             )
+            if self.tenant:
+                new_dev.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_dev)
 
     def load_ports(self):
@@ -206,6 +209,8 @@ class NautobotAdapter(DiffSync):
                 status=port.status.name,
                 uuid=port.id,
             )
+            if self.tenant:
+                new_port.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_port)
             device = self.get(self.device, port.device.name)
             device.add_child(new_port)
@@ -224,6 +229,8 @@ class NautobotAdapter(DiffSync):
                 tenant=prefix.tenant.name if prefix.tenant else None,
                 uuid=prefix.id,
             )
+            if self.tenant:
+                new_prefix.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_prefix)
 
     def load_ipaddresses(self):
@@ -243,6 +250,8 @@ class NautobotAdapter(DiffSync):
                 tenant=ipaddr.tenant.name if ipaddr.tenant else None,
                 uuid=ipaddr.id,
             )
+            if self.tenant:
+                new_ipaddr.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_ipaddr)
 
     def load_ipaddress_to_interface(self):
@@ -264,6 +273,8 @@ class NautobotAdapter(DiffSync):
                 ),
                 uuid=mapping.id,
             )
+            if self.tenant:
+                new_ipaddr_to_interface.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_ipaddr_to_interface)
 
     def sync_complete(self, source: DiffSync, *args, **kwargs):
