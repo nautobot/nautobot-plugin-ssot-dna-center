@@ -387,11 +387,11 @@ class NautobotIPAddress(base.IPAddress):
         """Update IPAddress in Nautobot from IPAddress object."""
         ipaddr = IPAddress.objects.get(id=self.uuid)
         if "prefix" in attrs:
-            pf_name = f"{attrs['prefix']}__{self.namespace}"
             pfs_to_create = self.diffsync.objects_to_create["prefixes"]
-            if pf_name in pfs_to_create:
-                prefix = pfs_to_create.pop(pfs_to_create.index(pf_name))
-                prefix.validated_save()
+            for pf in pfs_to_create:
+                if str(pf.prefix) == attrs["prefix"]:
+                    prefix = pfs_to_create.pop(pfs_to_create.index(pf))
+                    prefix.validated_save()
             ipaddr.parent_id = self.diffsync.prefix_map[attrs["prefix"]]
         if "tenant" in attrs:
             if attrs.get("tenant"):
