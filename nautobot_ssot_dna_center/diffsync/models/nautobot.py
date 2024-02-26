@@ -3,6 +3,7 @@
 from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from nautobot.dcim.models import (
     Device,
     DeviceType,
@@ -400,7 +401,10 @@ class NautobotIPAddress(base.IPAddress):
                 ipaddr.tenant = None
         ipaddr.custom_field_data.update({"system_of_record": "DNA Center"})
         ipaddr.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        ipaddr.validated_save()
+        try:
+            ipaddr.validated_save()
+        except ValidationError as err:
+            self.diffsync.job.logger.warning(f"Unable to update {ipaddr}: {err}")
         return super().update(attrs)
 
     def delete(self):
