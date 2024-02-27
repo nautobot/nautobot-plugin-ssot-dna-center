@@ -1,4 +1,5 @@
 """Create fixtures for tests."""
+
 import json
 
 

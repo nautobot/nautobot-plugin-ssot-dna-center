@@ -1,4 +1,5 @@
 """Utility functions for working with Nautobot."""
+
 from uuid import UUID
 from django.contrib.contenttypes.models import ContentType
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE

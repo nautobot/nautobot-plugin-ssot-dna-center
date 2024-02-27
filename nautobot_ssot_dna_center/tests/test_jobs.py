@@ -1,4 +1,5 @@
 """Test DNA Center Jobs."""
+
 from django.test import TestCase
 from django.urls import reverse
 

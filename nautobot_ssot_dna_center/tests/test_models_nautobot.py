@@ -1,4 +1,5 @@
 """Test the DiffSync models for Nautobot."""
+
 from unittest.mock import MagicMock, patch
 from diffsync import DiffSync
 from nautobot.dcim.models import (

@@ -1,4 +1,5 @@
 """Plugin declaration for nautobot_ssot_dna_center."""
+
 from importlib import metadata
 from nautobot.core.signals import nautobot_database_ready
 from nautobot.extras.plugins import PluginConfig
