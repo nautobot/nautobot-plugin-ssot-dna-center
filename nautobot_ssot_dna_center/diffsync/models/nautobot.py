@@ -333,7 +333,7 @@ class NautobotPrefix(base.Prefix):
             namespace_id=namespace,
             status_id=diffsync.status_map["Active"],
         )
-        if ids["prefix"] == "0.0.0.0/0";
+        if ids["prefix"] == "0.0.0.0/0":
             new_prefix.type = "container"
             new_prefix.description = "Catch-all Prefix from DNA Center SSoT."
         if attrs.get("tenant"):
