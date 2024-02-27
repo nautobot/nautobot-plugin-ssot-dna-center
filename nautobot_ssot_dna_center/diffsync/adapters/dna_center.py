@@ -382,7 +382,9 @@ class DnaCenterAdapter(DiffSync):
         """Load IP Address info from DNAC into IPAddress DiffSyncModel.
 
         Args:
-            address (str): IP Address to be loaded.
+            host (str): Host IP Address to be loaded.
+            mask_length (int): Mask length for IPAddress.
+            prefix (str): Parent prefix for IPAddress.
         """
         if self.tenant:
             namespace = self.tenant.name
