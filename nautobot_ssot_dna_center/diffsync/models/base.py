@@ -134,12 +134,11 @@ class IPAddress(DiffSyncModel):
 
     _modelname = "ipaddress"
     _identifiers = ("host", "namespace")
-    _attributes = ("mask_length", "prefix", "tenant")
+    _attributes = ("mask_length", "tenant")
     _children = {}
 
     host: str
     mask_length: int
-    prefix: str
     namespace: str
     tenant: Optional[str]
 

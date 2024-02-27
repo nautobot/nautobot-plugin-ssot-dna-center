@@ -409,7 +409,6 @@ class DnaCenterAdapter(DiffSync):
                 host=host,
                 mask_length=mask_length,
                 namespace=namespace,
-                prefix=prefix,
                 tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
             )
@@ -433,6 +432,15 @@ class DnaCenterAdapter(DiffSync):
 
     def load(self):
         """Load data from DNA Center into DiffSync models."""
+        # add global prefix to be catchall
+        global_prefix = self.prefix(
+            prefix="0.0.0.0/0",
+            namespace=self.tenant.name if self.tenant else "Global",
+            tenant=self.tenant.name if self.tenant else None,
+            uuid=None,
+        )
+        self.add(global_prefix)
+
         self.load_locations()
         self.load_devices()
         if self.failed_import_devices:

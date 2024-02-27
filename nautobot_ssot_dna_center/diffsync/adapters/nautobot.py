@@ -63,7 +63,6 @@ class NautobotAdapter(DiffSync):
     namespace_map = {}
     prefix_map = {}
     ipaddr_map = {}
-    ipaddr_pf_map = {}
 
     def __init__(
         self, *args, job: Optional[DataTarget] = None, sync=None, tenant: Optional[OrmTenant] = None, **kwargs
@@ -241,12 +240,10 @@ class NautobotAdapter(DiffSync):
             addresses = OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center")
         for ipaddr in addresses:
             self.ipaddr_map[str(ipaddr.host)] = ipaddr.id
-            self.ipaddr_pf_map[str(ipaddr.host)] = ipaddr.parent.id
             new_ipaddr = self.ipaddress(
                 host=str(ipaddr.host),
                 mask_length=ipaddr.mask_length,
                 namespace=ipaddr.parent.namespace.name,
-                prefix=str(ipaddr.parent.prefix),
                 tenant=ipaddr.tenant.name if ipaddr.tenant else None,
                 uuid=ipaddr.id,
             )
@@ -306,8 +303,6 @@ class NautobotAdapter(DiffSync):
         for obj_type in [
             "devices",
             "interfaces",
-            "prefixes",
-            "ipaddresses",
             "mappings",
         ]:
             if len(self.objects_to_create[obj_type]) > 0:
@@ -315,9 +310,6 @@ class NautobotAdapter(DiffSync):
                 for nautobot_obj in self.objects_to_create[obj_type]:
                     try:
                         self.job.logger.info(f"Saving {nautobot_obj}.")
-                        if obj_type == "ipaddrs":
-                            nautobot_obj.parent_id = self.ipaddr_pf_map[nautobot_obj.host]
-                        nautobot_obj.validated_save()
                     except ValidationError as err:
                         self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
                     except IntegrityError as err:
@@ -353,20 +345,6 @@ class NautobotAdapter(DiffSync):
         if len(self.objects_to_create["interfaces"]) > 0:
             self.job.logger.info("Performing bulk create of Interfaces in Nautobot")
             OrmInterface.objects.bulk_create(self.objects_to_create["interfaces"], batch_size=250)
-        if len(self.objects_to_create["prefixes"]) > 0:
-            self.job.logger.info("Performing bulk create of Prefixes in Nautobot")
-            OrmPrefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=250)
-        if len(self.objects_to_create["ipaddresses"]) > 0:
-            self.job.logger.info("Performing bulk create of IP Addresses in Nautobot")
-            OrmIPAddress.objects.bulk_create(self.objects_to_create["ipaddresses"], batch_size=250)
-        if len(self.objects_to_create["ipaddrs-to-prefixes"]) > 0:
-            self.job.logger.info("Assigning parent Prefix to IPAddresses with bulk_update.")
-            assigned_parents = []
-            for pair in self.objects_to_create["ipaddrs-to-prefixes"]:
-                ipaddr = pair[0]
-                ipaddr.parent_id = pair[1]
-                assigned_parents.append(ipaddr)
-            OrmIPAddress.objects.bulk_update(assigned_parents, ["parent_id"], batch_size=250)
         if len(self.objects_to_create["mappings"]) > 0:
             self.job.logger.info("Performing assignment of IPAddress to Interface.")
             OrmIPAddressToInterface.objects.bulk_create(self.objects_to_create["mappings"], batch_size=250)

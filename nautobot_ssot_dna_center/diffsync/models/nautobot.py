@@ -333,11 +333,14 @@ class NautobotPrefix(base.Prefix):
             namespace_id=namespace,
             status_id=diffsync.status_map["Active"],
         )
+        if ids["prefix"] == "0.0.0.0/0";
+            new_prefix.type = "container"
+            new_prefix.description = "Catch-all Prefix from DNA Center SSoT."
         if attrs.get("tenant"):
             new_prefix.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         new_prefix.custom_field_data.update({"system_of_record": "DNA Center"})
         new_prefix.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        diffsync.objects_to_create["prefixes"].append(new_prefix)
+        new_prefix.validated_save()
         diffsync.prefix_map[ids["prefix"]] = new_prefix.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -378,22 +381,13 @@ class NautobotIPAddress(base.IPAddress):
             new_ip.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         new_ip.custom_field_data.update({"system_of_record": "DNA Center"})
         new_ip.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
-        diffsync.objects_to_create["ipaddresses"].append(new_ip)
-        diffsync.objects_to_create["ipaddrs-to-prefixes"].append((new_ip, diffsync.prefix_map[attrs["prefix"]]))
+        new_ip.validated_save()
         diffsync.ipaddr_map[ids["host"]] = new_ip.id
-        diffsync.ipaddr_pf_map[ids["host"]] = diffsync.prefix_map[attrs["prefix"]]
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update IPAddress in Nautobot from IPAddress object."""
         ipaddr = IPAddress.objects.get(id=self.uuid)
-        if "prefix" in attrs:
-            pfs_to_create = self.diffsync.objects_to_create["prefixes"]
-            for pf in pfs_to_create:
-                if str(pf.prefix) == attrs["prefix"]:
-                    prefix = pfs_to_create.pop(pfs_to_create.index(pf))
-                    prefix.validated_save()
-            ipaddr.parent_id = self.diffsync.prefix_map[attrs["prefix"]]
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 ipaddr.tenant_id = self.diffsync.tenant_map[attrs["tenant"]]
