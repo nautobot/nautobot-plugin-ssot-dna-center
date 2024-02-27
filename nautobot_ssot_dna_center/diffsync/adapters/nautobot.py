@@ -237,7 +237,7 @@ class NautobotAdapter(DiffSync):
         if self.tenant:
             addresses = OrmIPAddress.objects.filter(tenant=self.tenant)
         else:
-            addresses = OrmPrefix.objects.filter(_custom_field_data__system_of_record="DNA Center")
+            addresses = OrmIPAddress.objects.filter(_custom_field_data__system_of_record="DNA Center")
         for ipaddr in addresses:
             self.ipaddr_map[str(ipaddr.host)] = ipaddr.id
             new_ipaddr = self.ipaddress(
