@@ -310,6 +310,7 @@ class NautobotAdapter(DiffSync):
                 for nautobot_obj in self.objects_to_create[obj_type]:
                     try:
                         self.job.logger.info(f"Saving {nautobot_obj}.")
+                        nautobot_obj.validated_save()
                     except ValidationError as err:
                         self.job.logger.warning(f"Unable to save {nautobot_obj}. {err}")
                     except IntegrityError as err:
