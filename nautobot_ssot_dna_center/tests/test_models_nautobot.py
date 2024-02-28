@@ -27,7 +27,6 @@ class TestNautobotArea(TransactionTestCase):
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
         self.diffsync.job.logger.info = MagicMock()
-        self.diffsync.objects_to_create = {"areas": []}  # pylint: disable=no-member
         self.diffsync.location_map = {}
         self.region_type = LocationType.objects.get(name="Region")
         self.diffsync.locationtype_map = {"Region": self.region_type.id}
@@ -44,9 +43,9 @@ class TestNautobotArea(TransactionTestCase):
         result = NautobotArea.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotArea)
         self.diffsync.job.logger.info.assert_called_once_with("Creating Region NY.")
-        region_obj = self.diffsync.objects_to_create["areas"][0]
+        region_obj = Location.objects.get(name=ids["name"], location_type__name="Region")
+        self.assertEqual(region_obj.name, ids["name"])
         self.assertEqual(region_obj.parent.name, ids["parent"])
-        self.assertEqual(len(self.diffsync.objects_to_create["areas"]), 1)
 
     def test_create_missing_parent(self):
         """Validate the NautobotArea create() method with missing parent Region."""
@@ -68,7 +67,6 @@ class TestNautobotBuilding(TransactionTestCase):
         self.diffsync.job = MagicMock()
         self.diffsync.job.logger.info = MagicMock()
         self.diffsync.status_map = {"Active": Status.objects.get(name="Active").id}
-        self.diffsync.objects_to_create = {"buildings": []}  # pylint: disable=no-member
         ga_tenant = Tenant.objects.create(name="G&A")
         self.diffsync.tenant_map = {"G&A": ga_tenant.id}
         reg_loc = LocationType.objects.get(name="Region")
@@ -97,11 +95,11 @@ class TestNautobotBuilding(TransactionTestCase):
         result = NautobotBuilding.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotBuilding)
         self.diffsync.job.logger.info.assert_called_once_with("Creating Site HQ.")
-        site_obj = self.diffsync.objects_to_create["buildings"][0]
+        site_obj = Location.objects.get(name=ids["name"], location_type__name="Site")
+        self.assertEqual(site_obj.name, ids["name"])
         self.assertEqual(site_obj.parent.name, attrs["area"])
         self.assertEqual(site_obj.physical_address, attrs["address"])
         self.assertEqual(site_obj.tenant.name, attrs["tenant"])
-        self.assertEqual(len(self.diffsync.objects_to_create["buildings"]), 1)
 
     def test_update_w_tenant(self):
         """Validate the NautobotBuilding update() method updates a Site with a tenant."""
@@ -167,7 +165,6 @@ class TestNautobotFloor(TransactionTestCase):
         )
         self.diffsync.location_map = {"HQ": self.hq_site.id}
         self.diffsync.status_map = {"Active": Status.objects.get(name="Active").id}
-        self.diffsync.objects_to_create = {"floors": []}
 
     def test_create(self):
         """Test the NautobotFloor create() method creates a LocationType: Floor."""
@@ -176,11 +173,10 @@ class TestNautobotFloor(TransactionTestCase):
         result = NautobotFloor.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotFloor)
         self.diffsync.job.logger.info.assert_called_with("Creating Floor HQ - Floor 1.")
-        floor_obj = self.diffsync.objects_to_create["floors"][0]
+        floor_obj = Location.objects.get(name=ids["name"], location_type__name="Floor")
         self.assertEqual(floor_obj.name, ids["name"])
         self.assertEqual(floor_obj.parent.name, self.hq_site.name)
         self.assertEqual(floor_obj.tenant.name, attrs["tenant"])
-        self.assertEqual(len(self.diffsync.objects_to_create["floors"]), 1)
 
     def test_update_w_tenant(self):
         """Test the NautobotFloor update() method updates a LocationType: Floor with tenant."""

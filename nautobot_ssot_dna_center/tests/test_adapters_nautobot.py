@@ -276,10 +276,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         )
         self.assertEqual(
             [
-                "10.10.10.1/24__Global",
-                "10.10.11.1/24__Global",
-                "10.10.12.1/24__Global",
-                "10.10.13.1/24__Global",
+                "10.10.10.1__Global",
+                "10.10.11.1__Global",
+                "10.10.12.1__Global",
+                "10.10.13.1__Global",
             ],
             sorted(ipaddr.get_unique_id() for ipaddr in self.nb_adapter.get_all("ipaddress")),
         )
