@@ -32,7 +32,7 @@ class NautobotArea(base.Area):
     def create(cls, diffsync, ids, attrs):
         """Create Region in Nautobot from Area object."""
         try:
-            diffsync.location_map[ids["name"]]
+            diffsync.region_map[ids["name"]]
             diffsync.job.logger.warning(f"Region {ids['name']} already exists so won't be created.")
         except KeyError:
             if diffsync.job.debug:
@@ -44,11 +44,11 @@ class NautobotArea(base.Area):
             )
             if ids.get("parent"):
                 try:
-                    new_region.parent_id = diffsync.location_map[ids["parent"]]
+                    new_region.parent_id = diffsync.region_map[ids["parent"]]
                 except KeyError:
                     diffsync.job.logger.warning(f"Unable to find Region {ids['parent']} for {ids['name']}.")
             new_region.validated_save()
-            diffsync.location_map[ids["name"]] = new_region.id
+            diffsync.region_map[ids["name"]] = new_region.id
             return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
 
@@ -63,6 +63,7 @@ class NautobotBuilding(base.Building):
         new_site = Location(
             name=ids["name"],
             location_type_id=diffsync.locationtype_map["Site"],
+            parent_id=diffsync.region_map[attrs["area"]],
             physical_address=attrs["address"] if attrs.get("address") else "",
             status_id=diffsync.status_map["Active"],
             latitude=attrs["latitude"],
@@ -70,13 +71,8 @@ class NautobotBuilding(base.Building):
         )
         if attrs.get("tenant"):
             new_site.tenant_id = diffsync.tenant_map[attrs["tenant"]]
-        try:
-            if attrs.get("area"):
-                new_site.parent_id = diffsync.location_map[attrs["area"]]
-        except Location.DoesNotExist:
-            diffsync.job.logger.warning(f"Unable to find parent {attrs['area']}")
         new_site.validated_save()
-        diffsync.location_map[ids["name"]] = new_site.id
+        diffsync.site_map[ids["name"]] = new_site.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -92,7 +88,7 @@ class NautobotBuilding(base.Building):
         if "address" in attrs:
             site.physical_address = attrs["address"]
         if "area" in attrs:
-            site.parent_id = self.diffsync.location_map[attrs["area"]]
+            site.parent_id = self.diffsync.region_map[attrs["area"]]
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
@@ -130,13 +126,13 @@ class NautobotFloor(base.Floor):
         new_floor = Location(
             name=ids["name"],
             status_id=diffsync.status_map["Active"],
-            parent_id=diffsync.location_map[ids["building"]],
+            parent_id=diffsync.site_map[ids["building"]],
             location_type_id=diffsync.locationtype_map["Floor"],
         )
         if attrs.get("tenant"):
             new_floor.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         new_floor.validated_save()
-        diffsync.location_map[ids["name"]] = new_floor.id
+        diffsync.floor_map[ids["name"]] = new_floor.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
@@ -180,13 +176,13 @@ class NautobotDevice(base.Device):
             name=ids["name"],
             status_id=diffsync.status_map[attrs["status"]],
             role=device_role,
-            location_id=diffsync.location_map[attrs["site"]],
+            location_id=diffsync.site_map[attrs["site"]],
             device_type=device_type,
             serial=attrs["serial"],
             platform_id=platform.id,
         )
         if attrs.get("floor"):
-            new_device.location_id = diffsync.location_map[attrs["floor"]]
+            new_device.location_id = diffsync.floor_map[attrs["floor"]]
         if attrs.get("tenant"):
             new_device.tenant_id = diffsync.tenant_map[attrs["tenant"]]
         if attrs.get("version"):
@@ -213,9 +209,9 @@ class NautobotDevice(base.Device):
             if created:
                 dev_role.content_types.add(ContentType.objects.get_for_model(Device))
         if attrs.get("site"):
-            device.location_id = self.diffsync.location_map[attrs["site"]]
+            device.location_id = self.diffsync.site_map[attrs["site"]]
         if attrs.get("floor"):
-            device.location_id = self.diffsync.location_map[attrs["floor"]]
+            device.location_id = self.diffsync.floor_map[attrs["floor"]]
         if "model" in attrs:
             if attrs.get("vendor"):
                 vendor = Manufacturer.objects.get_or_create(name=attrs["vendor"])[0]

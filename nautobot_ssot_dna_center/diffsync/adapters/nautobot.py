@@ -57,7 +57,9 @@ class NautobotAdapter(DiffSync):
     tenant_map = {}
     status_map = {}
     locationtype_map = {}
-    location_map = {}
+    region_map = {}
+    site_map = {}
+    floor_map = {}
     device_map = {}
     port_map = {}
     namespace_map = {}
@@ -87,7 +89,7 @@ class NautobotAdapter(DiffSync):
             loc_type = OrmLocationType.objects.get(name="Region")
             locations = OrmLocation.objects.filter(location_type=loc_type)
             for region in locations:
-                self.location_map[region.name] = region.id
+                self.region_map[region.name] = region.id
                 try:
                     self.get(self.area, {"name": region.name, "parent": region.parent.name if region.parent else None})
                     self.job.logger.warning(f"Region {region.name} already loaded so skipping duplicate.")
@@ -109,7 +111,7 @@ class NautobotAdapter(DiffSync):
             loc_type = OrmLocationType.objects.get(name="Site")
             locations = OrmLocation.objects.filter(location_type=loc_type)
             for site in locations:
-                self.location_map[site.name] = site.id
+                self.site_map[site.name] = site.id
                 try:
                     self.get(self.building, {"name": site.name, "area": site.parent.name if site.parent else None})
                 except ObjectNotFound:
@@ -132,7 +134,7 @@ class NautobotAdapter(DiffSync):
             loc_type = OrmLocationType.objects.get(name="Floor")
             locations = OrmLocation.objects.filter(location_type=loc_type)
             for location in locations:
-                self.location_map[location.name] = location.id
+                self.floor_map[location.name] = location.id
                 new_floor = self.floor(
                     name=location.name,
                     building=location.parent.name if location.parent else "",
