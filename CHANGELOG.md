@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v2.0.0 (2024-03-13)
+
+### Feature
+
+* ✨ Changed filter for Nautobot load() funcs to use Tenant if specified in Job form. ([`15893af`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/15893af540d817cfb4ca8b363bc5128f452cd3eb))
+* Add namespace to IPAddress DiffSync model. ([`af052ff`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/af052ff09307941bb34cf7591e811ae151ed5adf))
+* Adding ipaddress to interface function and updating ipaddress load function ([`d50ad01`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/d50ad014d2fac31c9980820d7d6766be6765ede5))
+* Adding External intergration and removing DNAC instance related components ([`371bea4`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/371bea485737af863372c8f4d73fa83cd708fd5a))
+* Add method to get Device model from list string. ([`4f2573e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/4f2573e5a3ca652a725e0f10dd48d9aec5a7272a))
+* Add platform handling for 9130 models ([`941fc24`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/941fc24899255cf7387b4bd997783b67c8334c15))
+
+### Fix
+
+* ♻️ Replace location_map with region, site, and floor map to ensure proper LocationType is used. ([`72041cc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/72041cce188834e9c700051feb6a1182b0dde1ed))
+* 🐛 Change Site LocationType to not be nestable ([`d947b3a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/d947b3a1f664aa6c1ecea9cf1dfbcad8a8763b38))
+* 🐛 Have object actually saved! ([`00744e0`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/00744e01a41661e2cf2c9a846a706c761dd0626b))
+* 🐛 Correct load to use OrmIPAddress ([`b281f9a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b281f9afd3d1dd1858b4526ad0954b8e9a554083))
+* 🐛 Correct syntax ([`af19de8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/af19de8d581ba885aebac354ed2514edf34f5d25))
+* 🐛 Correct check for existing IPAddress to match DiffSync model. ([`13a11ed`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/13a11edb15a46b257d64c8e9669d2e509e866d2e))
+* 🐛 Add check for building not being found in device_info. ([`1c4a81e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1c4a81ed67e62147b16c79e3ba2a27fcdd3d2b74))
+* 🐛 Add handling for ValidationError when updating an IPAddress. ([`b95886e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b95886e84f4f083754ef48a6e780fd88700fc766))
+* 🐛 Set DiffSyncModelFlags to SKIP_UNMATCHED_DST on loaded objects if Tenant specified. ([`dc170ad`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/dc170ad69c414e3a818d92df5b1a2e998ebd0bc3))
+* 🐛 Correct number of dunder to 2 ([`b3468ee`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b3468ee4d85181f38319c02caadd8f3f6a138fe0))
+* 🐛 Correct filter to specify Device Tenant for load_ports() ([`2d11041`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/2d11041ca50051b470c3b4b0b466ce434ae83ebc))
+* Correct config information. ([`92a9363`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/92a93632ae1541093a3186d16cdc39eb5331e1ff))
+* 🐛 Correct DataMapping to Locations instead of Regions/Sites ([`778749b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/778749b6d7671017a21bab953d67f4bcc7962d94))
+* Catch IntegrityError being thrown. ([`bc2e88b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/bc2e88bc2226c29cd5c070eaeea801aaa2b34d3d))
+* 🐛 Correct use of ipaddr_map and ipaddr_pf_map to use IPAddress host instead of address. ([`c5ab022`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/c5ab0227bec6baee33f1b563bc525cbf9513ebe1))
+* Use host and mask_length instead of address for IPAddress. ([`d49b7ae`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/d49b7ae05fa0a66cca068a1951c4e2922c7858da))
+* Correct typo ([`310fb79`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/310fb795adfb83b2afef54abd1d348b0ef91fcf7))
+* Correct Device location update to not allow None. ([`3e92d11`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/3e92d11fab41abf14ea632c58de4874253945cf8))
+* Correct Role to specify ContentType if created. ([`1a4c206`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1a4c2066a4d5491557787e6f5a9b3e3daa1047f6))
+* Correct port status to use proper name field. ([`487bc73`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/487bc733e52f166084046c629e0a66c5886cb8f3))
+* Correct check for Platform to use network_driver ([`3ec6029`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/3ec6029204b47dc899cbc395a9987d624bc14364))
+* Remove execute_sync method as it isn't needed. ([`a04a011`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/a04a011cd590cde8a796f00bab8ec164256c601c))
+* 🐛 Redo loading of IPAddress to Interface to use IPAddressToInterface instead of IPAddress. ([`b00ad92`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b00ad92d6eb2bb9307c3e8125094843e3764168c))
+* 🐛 Add Prefixes and IPAddresses to objects_to_delete so they're removed in correct order. ([`26bb123`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/26bb123a45c05cd8124f19dc2f86eb44d348de11))
+* 🔥 Remove code for Device and Interface from IPAddress creation as not needed any longer. ([`27985e3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/27985e349df61383850efe8d628d7eb52ec19ab5))
+* 🐛 Correct object attributes in Device update. ([`5a4ea94`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/5a4ea94f083e842cc39abffd58eeeaec947f57ad))
+* 🐛 Correct attribute to be site instead of location when loading a device. ([`8dffac9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/8dffac975ae3ac367a1c4fbb6086b6b56f59ca27))
+* 🐛 Correct default Region to be Global if undefined. ([`4844367`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/484436755bc872fbf47f3b2030fa67b1bd745f89))
+* 🐛 Correct Relationship to use label to get object and not name. ([`b7aec2e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b7aec2ee8dd5566d47d5f88068def85557181b72))
+* 🐛 Ensure network_driver is defined when creating a Platform and should use platform_name. ([`df706e8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/df706e8eaaf6bc7fdb36af341c879c0ea1b9a158))
+* 🐛 Correct data_mapping to use location_list instead of region/site. ([`b650767`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/b6507674cd8c81ca7be9c658b2cd15cbe70c0efa))
+* Logging bug fix with proper 2.X logging conventions. ([`ed48117`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/ed48117c04fc0846c1be583452f35c2cf600d909))
+* Changes to tests for 2.0 ([`5eafaa3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/5eafaa35721d8adac6bc18327cc0812f749804da))
+* Additional changes for 2.0 ([`857c893`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/857c89305223da8bf1e4e90489c9276ff96957b3))
+* Logging for 2.0 ([`91e6728`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/91e6728db82c72dfdbd1f23ff3b7c925fa94531d))
+* Add Prefix to Dna center adapter ([`d6901b8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/d6901b8a79ed1e5371f7e242015433fa2a5580a0))
+* Add Prefix Diffsync model and related changes in adapters ([`e393f6c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/e393f6c375417be60d5b76896aefafbd8e1290b1))
+* Slug to name for 2.0 ([`177049a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/177049a63bec58e760173bd72d87184886849cc1))
+* Region, Site with locations and fix imports ([`9bb354f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/9bb354f50953750af7813a96da62caecdaff9878))
+* Navigation for 2.0 replace plugin with apps framework ([`c3d62fa`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/c3d62faf17458dabe3cc2ef57a95e27e7fa9cef7))
+* Import changes for 2.0 ([`427379d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/427379d9b449d9fc5fb9b3f5603c35bb49454fd5))
+* Correct model update for Device to include vendor. ([`3d94aae`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/3d94aaebc8cc3816e9aa55b05577d4450fc2d0c5))
+* Throw Exception instead of logging when auth failure. ([`1b40fb2`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/1b40fb22b2f92477e7d3a9eb7b84e3df853b95a8))
+* :bug: Restructure how floor is updated on a Device ([`6097072`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/60970727529e811512ca6fe33413fdf85c6792dd))
+* :bug: Ensure Location is None if not set for Device to match DNAC ([`ac88038`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/ac88038d3231c28aaa36d095803e5232919691bd))
+* Add check for type key ([`ab85a71`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/ab85a71a0f0903b4670879e3bc6b853b4768f75d))
+* :bug: Add handling for 3800 series AP missing platform ([`7092923`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/7092923f24b67d1c135dd93d66a06c32f7e311a6))
+* :bug: Add handling for devices without hostname. ([`2d5b513`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/2d5b513017378c4a1a93a11ae4f36ee3f5138b67))
+
+### Documentation
+
+* 🚨 Fix docstrings ([`6905ce1`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/6905ce17fe311d0e22d6e4fa41b7f46aee3b8088))
+* Add SSoT dashboard image ([`cec8298`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/cec82982f1e064733f297e8e71d2c8332803a077))
+* 📝 Add image for DNAC DataSource details page. ([`42b0e54`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/42b0e5470ce8357a76970816480108e673498d4a))
+* 📝 Add images for documentation ([`5f04a2c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/5f04a2c3cb0b66fd75ecb03c651b262fba69911d))
+* 🏷️ Add type hint for job ([`2aa4800`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/2aa48002346d12f7d8bb0818d8bfeb6ccf4bb2b7))
+* 📝 Fix docstrings for a few methods. ([`03570fc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/03570fc5a49dfbd3350f154bababcd36d314af98))
+* 📝 Fix docstrings to match method signature. ([`85b0abb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/85b0abb20761595bb8bd79dc0f2f3cf562ea0abe))
+
+### Performance
+
+* Refactor project to use maps and bulk operations. ([`34ad17b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/34ad17befebc9db88b037f0fc0845f61f308403f))
+
 ## v1.0.0 (2023-06-07)
 ### Feature
 * ✨ Update Device load function to hostname_mapping setting is found. ([`8ecdd8b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-dna-center/commit/8ecdd8bbf1e1ff1b0b2dd7aa252f7371e377114b))
