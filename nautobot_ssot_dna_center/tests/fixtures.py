@@ -1,6 +1,6 @@
 """Create fixtures for tests."""
+
 import json
-from nautobot_ssot_dna_center.models import DNACInstance
 
 
 def load_json(path):
@@ -26,11 +26,3 @@ EXPECTED_AREAS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expec
 EXPECTED_AREAS_WO_GLOBAL = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_areas_wo_global.json")
 EXPECTED_BUILDINGS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_buildings.json")
 EXPECTED_FLOORS = load_json(path="./nautobot_ssot_dna_center/tests/fixtures/expected_floors.json")
-
-
-def create_dnacinstance():
-    """Fixture to create necessary number of DNACInstance for tests."""
-    url = "http://dnac.testexample.com"
-    DNACInstance.objects.create(name="Test One", slug="test-one", port=443, host_url=url)
-    DNACInstance.objects.create(name="Test Two", slug="test-two", port=443, host_url=url)
-    DNACInstance.objects.create(name="Test Three", slug="test-three", port=443, host_url=url)

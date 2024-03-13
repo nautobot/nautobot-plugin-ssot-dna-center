@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch, create_autospec
 from requests import Response
 from parameterized import parameterized
-from nautobot.utilities.testing import TestCase
+from nautobot.core.testing import TestCase
 from dnacentersdk.exceptions import dnacentersdkException
 from nautobot_ssot_dna_center.tests.fixtures import (
     DEVICE_DETAIL_FIXTURE,
@@ -187,10 +187,10 @@ class TestDnaCenterClient(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(actual, received)
 
     mock_port_status = [
-        ("Maintenance", {"adminStatus": "DOWN", "status": "down"}, "maintenance"),
-        ("Failed", {"adminStatus": "UP", "status": "down"}, "failed"),
-        ("Planned", {"adminStatus": "DOWN", "status": "up"}, "planned"),
-        ("Active", {"adminStatus": "UP", "status": "up"}, "active"),
+        ("Maintenance", {"adminStatus": "DOWN", "status": "down"}, "Maintenance"),
+        ("Failed", {"adminStatus": "UP", "status": "down"}, "Failed"),
+        ("Planned", {"adminStatus": "DOWN", "status": "up"}, "Planned"),
+        ("Active", {"adminStatus": "UP", "status": "up"}, "Active"),
     ]
 
     @parameterized.expand(mock_port_status, skip_on_empty=True)

@@ -34,13 +34,13 @@
 </div>
 <div class="pull-right noprint">
 	{% if perms.nautobot_ssot_dna_center.change_dnacinstance %}
-	<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_edit' slug=object.slug %}"
+	<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_edit' name=object.name %}"
 		class="btn btn-warning">
 		<span class="mdi mdi-pencil" aria-hidden="true"></span> Edit
 	</a>
 	{% endif %}
 	{% if perms.nautobot_ssot_dna_center.delete_dnacinstance %}
-	<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_delete' slug=object.slug %}"
+	<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_delete' name=object.name %}"
 		class="btn btn-danger">
 		<span class="mdi mdi-trash-can-outline" aria-hidden="true"></span> Delete
 	</a>
@@ -57,7 +57,7 @@
 	</li>
 	{% if perms.extras.view_objectchange %}
 	<li role="presentation" {% if active_tab == 'changelog' %} class="active" {% endif %}>
-		<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_changelog' slug=object.slug %}">Change Log</a>
+		<a href="{% url 'plugins:nautobot_ssot_dna_center:dnacinstance_changelog' name=object.name %}">Change Log</a>
 	</li>
 	{% endif %}
 </ul>

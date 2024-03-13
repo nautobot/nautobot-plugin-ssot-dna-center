@@ -1,4 +1,5 @@
 """Nautobot Configuration."""  # pylint: disable=invalid-envvar-default
+
 import os
 import sys
 

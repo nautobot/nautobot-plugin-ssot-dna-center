@@ -1,4 +1,5 @@
 """DiffSyncModel subclasses for Nautobot-to-DNA Center data sync."""
+
 from typing import Optional, List
 from uuid import UUID
 from diffsync import DiffSyncModel
@@ -34,7 +35,7 @@ class Building(DiffSyncModel):
 
     name: str
     address: Optional[str]
-    area: Optional[str]
+    area: str
     latitude: Optional[str]
     longitude: Optional[str]
     tenant: Optional[str]
@@ -89,7 +90,6 @@ class Device(DiffSyncModel):
     platform: str
     tenant: Optional[str]
     ports: Optional[List["Port"]] = list()
-    management_addr: Optional[str]
 
     uuid: Optional[UUID]
 
@@ -115,19 +115,48 @@ class Port(DiffSyncModel):
     uuid: Optional[UUID]
 
 
+class Prefix(DiffSyncModel):
+    """DiffSync Model for DNA Center prefixes."""
+
+    _modelname = "prefix"
+    _identifiers = ("prefix", "namespace")
+    _attributes = ("tenant",)
+    _children = {}
+
+    prefix: str
+    namespace: str
+    tenant: Optional[str]
+    uuid: Optional[UUID]
+
+
 class IPAddress(DiffSyncModel):
     """DiffSync model for DNA Center IP addresses."""
 
     _modelname = "ipaddress"
-    _identifiers = ("address", "device", "interface")
-    _attributes = ("primary", "tenant")
+    _identifiers = ("host", "namespace")
+    _attributes = ("mask_length", "tenant")
     _children = {}
 
-    address: str
-    interface: str
-    device: str
-    primary: bool
+    host: str
+    mask_length: int
+    namespace: str
     tenant: Optional[str]
+
+    uuid: Optional[UUID]
+
+
+class IPAddressOnInterface(DiffSyncModel):
+    """DiffSync model for DNA Center tracking IPAddress on particular Device interfaces."""
+
+    _modelname = "ip_on_intf"
+    _identifiers = ("host", "device", "port")
+    _attributes = ("primary",)
+    _children = {}
+
+    host: str
+    device: str
+    port: str
+    primary: bool
 
     uuid: Optional[UUID]
 
