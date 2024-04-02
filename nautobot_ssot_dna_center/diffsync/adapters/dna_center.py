@@ -243,7 +243,7 @@ class DnaCenterAdapter(DiffSync):
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     if not PLUGIN_CFG.get("import_merakis"):
                         continue
-                    platform = "meraki"
+                    platform = "cisco_meraki"
             if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
             dev_details = self.conn.get_device_detail(dev_id=dev["id"])
