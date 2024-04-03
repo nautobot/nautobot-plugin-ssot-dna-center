@@ -188,7 +188,9 @@ class NautobotDevice(base.Device):
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(diffsync=diffsync, platform=platform.name, version=attrs["version"])
+                lcm_obj = add_software_lcm(
+                    diffsync=diffsync, platform=platform.network_driver, version=attrs["version"]
+                )
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.custom_field_data.update({"system_of_record": "DNA Center"})
         new_device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
@@ -232,8 +234,10 @@ class NautobotDevice(base.Device):
         if "version" in attrs:
             device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
-                platform_slug = attrs["platform"] if attrs.get("platform") else self.platform
-                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform=platform_slug, version=attrs["version"])
+                platform_network_driver = attrs["platform"] if attrs.get("platform") else self.platform
+                lcm_obj = add_software_lcm(
+                    diffsync=self.diffsync, platform=platform_network_driver, version=attrs["version"]
+                )
                 assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.custom_field_data.update({"system_of_record": "DNA Center"})
         device.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
