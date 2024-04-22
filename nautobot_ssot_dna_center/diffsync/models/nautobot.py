@@ -81,7 +81,7 @@ class NautobotBuilding(base.Building):
             self.diffsync.job.logger.warning(
                 f"`update_locations` setting is disabled so will skip updating {self.name}."
             )
-            return None
+            return super().update(attrs)
         site = Location.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.logger.info(f"Updating Site {site.name}.")
