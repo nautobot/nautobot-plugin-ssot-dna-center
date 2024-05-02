@@ -38,6 +38,8 @@ The plugin behavior can be controlled with the following list of settings
 | import_global                     | True    | Whether to import the Global area or not. Defaults to True.            |
 | update_locations                  | True    | Whether to update locations that are found. Defaults to True.          |
 | hostname_mapping                  | []      | List of tuples containing regex to match hostname to a DeviceRole.     |
+| show_failures                     | True    | Log device load failure summary.                                       |
+
 
 ## Configuration Example
 
@@ -50,6 +52,7 @@ PLUGINS_CONFIG = {
         "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
         "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
         "hostname_mapping": [],
+        "show_failures": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_SHOW_FAILURES", True)),
     },
 }
 ```
