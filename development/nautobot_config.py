@@ -51,25 +51,6 @@ DATABASES = {
 if DATABASES["default"]["ENGINE"] == "django.db.backends.mysql":
     DATABASES["default"]["OPTIONS"] = {"charset": "utf8mb4"}
 
-# Nautobot uses RQ for task scheduling. These are the following defaults.
-# For detailed configuration see: https://github.com/rq/django-rq#installation
-# These defaults utilize the Django `CACHES` setting defined above for django-redis.
-# See: https://github.com/rq/django-rq#support-for-django-redis-and-django-redis-cache
-RQ_QUEUES = {
-    "default": {
-        "USE_REDIS_CACHE": "default",
-    },
-    "check_releases": {
-        "USE_REDIS_CACHE": "default",
-    },
-    "custom_fields": {
-        "USE_REDIS_CACHE": "default",
-    },
-    "webhooks": {
-        "USE_REDIS_CACHE": "default",
-    },
-}
-
 # Nautobot uses Cacheops for database query caching. These are the following defaults.
 # For detailed configuration see: https://github.com/Suor/django-cacheops#setup
 CACHEOPS_REDIS = os.getenv("NAUTOBOT_CACHEOPS_REDIS", parse_redis_connection(redis_database=1))
@@ -297,6 +278,7 @@ PLUGINS_CONFIG = {
         "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
         "import_merakis": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_MERAKIS", False)),
         "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
+        "show_failures": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_SHOW_FAILURES", True)),
     },
 }
 

@@ -1,5 +1,10 @@
 """Defines various constants used throughout the App."""
 
+from django.conf import settings
+
+# Import config vars from nautobot_config.py
+PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_dna_center"]
+
 DNAC_PLATFORM_MAPPER = {
     "IOS": "cisco_ios",
     "IOS-XE": "cisco_ios",

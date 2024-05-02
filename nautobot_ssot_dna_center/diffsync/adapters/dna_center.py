@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from nautobot.tenancy.models import Tenant
 
-from nautobot_ssot_dna_center.constants import DNAC_PLATFORM_MAPPER
+from nautobot_ssot_dna_center.constants import DNAC_PLATFORM_MAPPER, PLUGIN_CFG
 from nautobot_ssot_dna_center.diffsync.models.dna_center import (
     DnaCenterArea,
     DnaCenterBuilding,
@@ -243,7 +243,7 @@ class DnaCenterAdapter(DiffSync):
                 if not dev.get("softwareType") and dev.get("family") and "Meraki" in dev["family"]:
                     if not PLUGIN_CFG.get("import_merakis"):
                         continue
-                    platform = "meraki"
+                    platform = "cisco_meraki"
             if dev.get("type") and "Juniper" in dev["type"]:
                 vendor = "Juniper"
             dev_details = self.conn.get_device_detail(dev_id=dev["id"])
@@ -445,9 +445,10 @@ class DnaCenterAdapter(DiffSync):
 
         self.load_locations()
         self.load_devices()
-        if self.failed_import_devices:
-            self.job.logger.warning(
-                f"List of {len(self.failed_import_devices)} devices that were unable to be loaded. {json.dumps(self.failed_import_devices, indent=2)}"
-            )
-        else:
-            self.job.logger.info("There weren't any failed device loads. Congratulations!")
+        if PLUGIN_CFG.get("show_failures"):
+            if self.failed_import_devices:
+                self.job.logger.warning(
+                    f"List of {len(self.failed_import_devices)} devices that were unable to be loaded. {json.dumps(self.failed_import_devices, indent=2)}"
+                )
+            else:
+                self.job.logger.info("There weren't any failed device loads. Congratulations!")
