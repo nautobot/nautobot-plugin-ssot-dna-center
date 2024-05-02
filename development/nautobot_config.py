@@ -297,6 +297,7 @@ PLUGINS_CONFIG = {
         "import_global": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_GLOBAL", True)),
         "import_merakis": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_IMPORT_MERAKIS", False)),
         "update_locations": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_UPDATE_LOCATIONS", True)),
+        "show_failures": is_truthy(os.getenv("NAUTOBOT_DNAC_SSOT_SHOW_FAILURES", True)),
     },
 }
 
