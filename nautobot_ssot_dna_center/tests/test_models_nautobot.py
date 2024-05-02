@@ -288,7 +288,7 @@ class TestNautobotDevice(TransactionTestCase):
         self.diffsync.floor_map = {"HQ - Floor 1": hq_floor.id}
 
         NautobotDevice.create(self.diffsync, self.ids, self.attrs)
-        self.diffsync.job.logger.info.assert_called_with("Creating Version 16.12.3 for cisco.ios.ios.")
+        self.diffsync.job.logger.info.assert_called_with("Creating Version 16.12.3 for cisco_ios.")
         new_dev = self.diffsync.objects_to_create["devices"][0]
         self.assertEqual(new_dev.role, Role.objects.get(name=self.attrs["role"]))
         self.assertEqual(
